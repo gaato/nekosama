@@ -43,11 +43,10 @@ async def role_list(ctx: discord.ApplicationContext):
     description='ロールのメンバー一覧を表示します',
 )
 async def role_members(ctx: discord.ApplicationContext, role: discord.Role):
-    embed = discord.Embed(
-        title=f'{role.name}のメンバー一覧',
-        description='\n'.join([member.mention for member in role.members]),
-    )
-    await ctx.respond(embed=embed)
+    content = f'{role.name}のメンバー一覧\n```\n' + \
+        '\n'.join([member.display_name for member in role.members]) + \
+        '\n```'
+    await ctx.respond(content)
 
 
 bot.run(os.environ.get('DISCORD_TOKEN'))

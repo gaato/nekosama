@@ -4,7 +4,7 @@ import pathlib
 import discord
 from dotenv import load_dotenv
 
-from ..views import RoleSelectView
+from ..views import AgreementButtonView
 from .. import config
 
 
@@ -20,8 +20,8 @@ async def on_ready():
     print(f"Logged in as {client.user} (ID: {client.user.id})")
     print("------")
     button_channel = client.get_channel(config.channel_id)
-    view = RoleSelectView(client)
-    message = await button_channel.send('ご自身の役割を以下から選んでください。', view=view)
+    view = AgreementButtonView(client)
+    message = await button_channel.send('After carefully reading the above information, please click the button below.\n上記の内容をよく読んだら以下のボタンを押してください。', view=view)
     print(f'BUTTON_MESSAGE_ID = {message.id}')
     await client.close()
 

@@ -3,30 +3,13 @@ import discord
 from . import config
 
 
-options = []
+class AgreementButtonView(discord.ui.View):
+    def __init__(self, log_channel: discord.TextChannel):
+        self.log_channel = log_channel
+        super().__init__(timeout=None)
 
-for label, value in config.options:
-    options.append(discord.SelectOption(label=label, value=str(value)))
-
-
-class RoleSelectView(discord.ui.View):
-    def __init__(self, bot: discord.Client):
-        self.bot = bot
-        self.guild = self.bot.get_guild(config.guild_id)
-        self.roles = {}
-        for _, value in config.options:
-            self.roles[value] = self.guild.get_role(value)
-        return super().__init__(timeout=None)
-
-    @discord.ui.select(placeholder='役割を選択してください', custom_id='role_select', min_values=0, max_values=len(options), options=options)
-    async def select_callback(self, select, interaction: discord.Interaction):
-        added_roles = []
-        removed_roles = []
-        for _, value in config.options:
-            if str(value) in select.values:
-                added_roles.append(self.roles[int(value)])
-            else:
-                removed_roles.append(self.roles[int(value)])
-        await interaction.user.add_roles(*added_roles)
-        await interaction.user.remove_roles(*removed_roles)
-        await interaction.response.send_message('役割を選択しました。', ephemeral=True)
+    @discord.ui.button(label='Agree', custom_id='button-1', style=discord.ButtonStyle.primary)
+    async def button_callback(self, button, interaction: discord.Interaction):
+        role = interaction.guild.get_role(config.role_id)
+        await interaction.user.add_roles(role)
+        await interaction.response.send_message(f'Please read <#1082278240535724064> first!\nまずは<#1082278240535724064>をお読みください！', ephemeral=True)

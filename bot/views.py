@@ -12,4 +12,4 @@ class AgreementButtonView(discord.ui.View):
     async def button_callback(self, button, interaction: discord.Interaction):
         role = interaction.guild.get_role(config.role_id)
         await interaction.user.add_roles(role)
-        await interaction.response.send_message(f'Please read <#1082278240535724064> first!\nまずは<#1082278240535724064>をお読みください！', ephemeral=True)
+        await interaction.response.send_message(f'Please read <#1082923642918289448> first!\nまずは<#1082278240535724064>をお読みください！', ephemeral=True)

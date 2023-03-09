@@ -61,13 +61,13 @@ async def role_members(ctx: discord.ApplicationContext, role: discord.Role):
 @bot.message_command(name='JP -> EN')
 async def jp_to_en(ctx: discord.ApplicationContext, message: discord.Message):
     translated = translator.translate(message.content, dest='en', src='ja')
-    await ctx.respond(translated.text)
+    await ctx.respond(translated.text, ephemeral=True)
 
 
 @bot.message_command(name='EN -> JP')
 async def en_to_jp(ctx: discord.ApplicationContext, message: discord.Message):
     translated = translator.translate(message.content, dest='ja', src='en')
-    await ctx.respond(translated.text)
+    await ctx.respond(translated.text, ephemeral=True)
 
 
 @bot.slash_command(

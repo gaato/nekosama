@@ -1,6 +1,5 @@
 import datetime
 import os
-from collections import OrderedDict
 
 import discord
 from discord.ext import commands
@@ -15,27 +14,6 @@ intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(intents=intents)
 translator = Translator()
-
-
-class LimitedSizeDict(OrderedDict):
-
-    def __init__(self, size_limit=None, *args, **kwds):
-        self.size_limit = size_limit
-        super().__init__(*args, **kwds)
-        self._check_size_limit()
-
-    def __setitem__(self, key, value):
-        super().__setitem__(key, value)
-        self._check_size_limit()
-
-    def _check_size_limit(self):
-        if self.size_limit is not None:
-            while len(self) > self.size_limit:
-                self.popitem(last=False)
-
-
-jp_to_en_cache = LimitedSizeDict(size_limit=100)
-en_to_jp_cache = LimitedSizeDict(size_limit=100)
 
 
 @bot.event
@@ -82,20 +60,14 @@ async def role_members(ctx: discord.ApplicationContext, role: discord.Role):
 
 @bot.message_command(name='JP -> EN')
 async def jp_to_en(ctx: discord.ApplicationContext, message: discord.Message):
-    if message.content in jp_to_en_cache:
-        await ctx.respond(jp_to_en_cache[message.content], ephemeral=True)
-        return
-    jp_to_en_cache[message.content] = translator.translate(message.content, dest='en', src='ja').text
-    await ctx.respond(jp_to_en_cache[message.content], ephemeral=True)
+    translated = translator.translate(message.content, dest='en', src='ja')
+    await ctx.respond(translated.text)
 
 
 @bot.message_command(name='EN -> JP')
 async def en_to_jp(ctx: discord.ApplicationContext, message: discord.Message):
-    if message.content in en_to_jp_cache:
-        await ctx.respond(en_to_jp_cache[message.content], ephemeral=True)
-        return
-    en_to_jp_cache[message.content] = translator.translate(message.content, dest='ja', src='en').text
-    await ctx.respond(en_to_jp_cache[message.content], ephemeral=True)
+    translated = translator.translate(message.content, dest='ja', src='en')
+    await ctx.respond(translated.text)
 
 
 @bot.slash_command(

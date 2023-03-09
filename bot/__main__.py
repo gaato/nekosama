@@ -138,6 +138,7 @@ async def unixtimestamp(
                 discord.OptionChoice('AEST (UTC+10)', '+1000'),
                 discord.OptionChoice('AEDT (UTC+11)', '+1100'),
                 discord.OptionChoice('NZST (UTC+12)', '+1200'),
+                discord.OptionChoice('NZDT (UTC+13)', '+1300'),
             ],
             required=True,
         ),

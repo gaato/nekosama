@@ -34,7 +34,8 @@ class LimitedSizeDict(OrderedDict):
                 self.popitem(last=False)
 
 
-translation_cache = LimitedSizeDict(size_limit=100)
+jp_to_en_cache = LimitedSizeDict(size_limit=100)
+en_to_jp_cache = LimitedSizeDict(size_limit=100)
 
 
 @bot.event
@@ -81,20 +82,20 @@ async def role_members(ctx: discord.ApplicationContext, role: discord.Role):
 
 @bot.message_command(name='JP -> EN')
 async def jp_to_en(ctx: discord.ApplicationContext, message: discord.Message):
-    if message.content in translation_cache:
-        await ctx.respond(translation_cache[message.content], ephemeral=True)
+    if message.content in jp_to_en_cache:
+        await ctx.respond(jp_to_en_cache[message.content], ephemeral=True)
         return
-    translation_cache[message.content] = translator.translate(message.content, dest='en', src='ja').text
-    await ctx.respond(translation_cache[message.content], ephemeral=True)
+    jp_to_en_cache[message.content] = translator.translate(message.content, dest='en', src='ja').text
+    await ctx.respond(jp_to_en_cache[message.content], ephemeral=True)
 
 
 @bot.message_command(name='EN -> JP')
 async def en_to_jp(ctx: discord.ApplicationContext, message: discord.Message):
-    if message.content in translation_cache:
-        await ctx.respond(translation_cache[message.content], ephemeral=True)
+    if message.content in en_to_jp_cache:
+        await ctx.respond(en_to_jp_cache[message.content], ephemeral=True)
         return
-    translation_cache[message.content] = translator.translate(message.content, dest='ja', src='en').text
-    await ctx.respond(translation_cache[message.content], ephemeral=True)
+    en_to_jp_cache[message.content] = translator.translate(message.content, dest='ja', src='en').text
+    await ctx.respond(en_to_jp_cache[message.content], ephemeral=True)
 
 
 @bot.slash_command(

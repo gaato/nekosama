@@ -1,19 +1,66 @@
 import datetime
 import os
+import uuid
+from collections import OrderedDict
 
+import aiohttp
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from googletrans import Translator
 
 from .views import AgreementButtonView
-
 
 load_dotenv()
 intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(intents=intents)
-translator = Translator()
+
+
+class LimitedSizeDict(OrderedDict):
+    def __init__(self, size_limit=None, *args, **kwds):
+        self.size_limit = size_limit
+        super().__init__(*args, **kwds)
+        self._check_size_limit()
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self._check_size_limit()
+
+    def _check_size_limit(self):
+        if self.size_limit is not None:
+            while len(self) > self.size_limit:
+                self.popitem(last=False)
+
+
+jp_to_en_cache = LimitedSizeDict(size_limit=100)
+en_to_jp_cache = LimitedSizeDict(size_limit=100)
+
+
+async def translate(text, dest, src=None):
+    key = os.environ['TL_KEY']
+    endpoint = 'https://api.cognitive.microsofttranslator.com'
+    path = '/translate'
+    constructed_url = endpoint + path
+    region = 'japaneast'
+    params = {
+        'api-version': '3.0',
+        'from': src,
+        'to': dest,
+    }
+    headers = {
+        'Ocp-Apim-Subscription-Key': key,
+        'Ocp-Apim-Subscription-Region': region,
+        'Content-type': 'application/json',
+        'X-ClientTraceId': str(uuid.uuid4())
+    }
+    body = [{'text': text}]
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url=constructed_url, params=params, headers=headers, json=body) as response:
+            if response.status != 200:
+                print(await response.text())
+                return None, response.status
+            return (await response.json())[0]['translations'][0]['text'], response.status
 
 
 @bot.event
@@ -60,14 +107,28 @@ async def role_members(ctx: discord.ApplicationContext, role: discord.Role):
 
 @bot.message_command(name='JP -> EN')
 async def jp_to_en(ctx: discord.ApplicationContext, message: discord.Message):
-    translated = translator.translate(message.content, dest='en', src='ja')
-    await ctx.respond(translated.text, ephemeral=True)
+    if message.content in jp_to_en_cache:
+        await ctx.respond(jp_to_en_cache[message.content], ephemeral=True)
+        return
+    translated_text, status = await translate(message.content, src='ja', dest='en')
+    if status != 200:
+        await ctx.respond(f'Error: {status}')
+        return
+    jp_to_en_cache[message.content] = translated_text
+    await ctx.respond(translated_text, ephemeral=True)
 
 
 @bot.message_command(name='EN -> JP')
 async def en_to_jp(ctx: discord.ApplicationContext, message: discord.Message):
-    translated = translator.translate(message.content, dest='ja', src='en')
-    await ctx.respond(translated.text, ephemeral=True)
+    if message.content in en_to_jp_cache:
+        await ctx.respond(en_to_jp_cache[message.content], ephemeral=True)
+        return
+    translated_text, status = await translate(message.content, src='en', dest='ja')
+    if status != 200:
+        await ctx.respond(f'Error: {status}')
+        return
+    en_to_jp_cache[message.content] = translated_text
+    await ctx.respond(translated_text, ephemeral=True)
 
 
 @bot.slash_command(

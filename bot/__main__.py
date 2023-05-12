@@ -2,18 +2,23 @@ import datetime
 import os
 import uuid
 from collections import OrderedDict
+from typing import List, Optional
 
 import aiohttp
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
 from .views import AgreementButtonView
+from .config import guild_id, teams
 
 load_dotenv()
 intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(intents=intents)
+
+guild: Optional[discord.Guild] = None
+events: List[discord.ScheduledEvent] = []
 
 
 class LimitedSizeDict(OrderedDict):
@@ -68,6 +73,11 @@ async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     print("------")
     bot.add_view(AgreementButtonView(bot))
+    global guild
+    guild = bot.get_guild(guild_id)
+    get_events.start()
+    check_events.start()
+
 
 @bot.slash_command()
 async def ping(ctx):
@@ -203,6 +213,25 @@ async def unixtimestamp(
     embed.add_field(name='Input (with timezone)', value=f'```\n{dt}{timezone}\n```')
     embed.add_field(name='Unix Timestamp', value=f'```\n{timestamp}\n```')
     await ctx.respond(timestamp, embed=embed)
+
+
+@tasks.loop(minutes=1)
+async def get_events():
+    global events
+    events = await guild.fetch_scheduled_events()
+    print(events)
+
+
+@tasks.loop(seconds=10)
+async def check_events():
+    global events
+    for event in events:
+        if datetime.timedelta(minutes=4) < event.start_time - datetime.datetime.now(datetime.timezone.utc) < datetime.timedelta(minutes=5):
+            if ids := teams.get(event.location.value.id):
+                role = guild.get_role(ids[0]) if ids[0] else None
+                channel = guild.get_channel(ids[1])
+                await channel.send(f'{role.mention if role else "@everyone"}\n__**{event.name}**__ が {event.location.value.jump_url} で __**5 分後**__に始まります！')
+                events.remove(event)
 
 
 bot.run(os.environ.get('DISCORD_TOKEN'))

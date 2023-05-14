@@ -230,7 +230,7 @@ async def check_events():
             if ids := teams.get(event.location.value.id):
                 role = guild.get_role(ids[0]) if ids[0] else None
                 channel = guild.get_channel(ids[1])
-                await channel.send(f'{role.mention if role else "@everyone"}\n__**{event.name}**__ が {event.location.value.jump_url} で __**5 分後**__に始まります！')
+                await channel.send(f'{role.mention if role else "@everyone"}\n__**{event.name}**__ が {event.location.value.jump_url} で __**5 分後**__に始まります！\n{event.url}')
                 events.remove(event)
 
 

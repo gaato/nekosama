@@ -15,6 +15,7 @@ from .config import guild_id, teams
 load_dotenv()
 intents = discord.Intents.default()
 intents.members = True
+intents.message_content = True
 bot = commands.Bot(intents=intents)
 
 guild: Optional[discord.Guild] = None
@@ -41,17 +42,20 @@ jp_to_en_cache = LimitedSizeDict(size_limit=100)
 en_to_jp_cache = LimitedSizeDict(size_limit=100)
 
 
-async def translate(text, dest, src=None):
+async def translate(text, dest=['en', 'ja'], src=None):
     key = os.environ['TL_KEY']
     endpoint = 'https://api.cognitive.microsofttranslator.com'
     path = '/translate'
     constructed_url = endpoint + path
     region = 'japaneast'
-    params = {
-        'api-version': '3.0',
-        'from': src,
-        'to': dest,
-    }
+    params = [('api-version', '3.0')]
+    if src is not None:
+        params.append(('from', src))
+    if isinstance(dest, list):
+        for d in dest:
+            params.append(('to', d))
+    else:
+        params.append(('to', dest))
     headers = {
         'Ocp-Apim-Subscription-Key': key,
         'Ocp-Apim-Subscription-Region': region,
@@ -65,7 +69,15 @@ async def translate(text, dest, src=None):
             if response.status != 200:
                 print(await response.text())
                 return None, response.status
-            return (await response.json())[0]['translations'][0]['text'], response.status
+            res = await response.json()
+            if src is None:
+                match res[0]['detectedLanguage']['language']:
+                    case 'ja':
+                        return res[0]['translations'][0]['text'], response.status
+                    case 'en':
+                        return res[0]['translations'][1]['text'], response.status
+            else:
+                return res[0]['translations'][0]['text'], response.status
 
 
 @bot.event
@@ -77,6 +89,17 @@ async def on_ready():
     guild = bot.get_guild(guild_id)
     get_events.start()
     check_events.start()
+
+
+@bot.event
+async def on_message(message: discord.Message):
+    if message.author.bot:
+        return
+    translated_text, status = await translate(message.content)
+    if status != 200:
+        return
+    await message.reply(translated_text, mention_author=False)
+    await bot.process_commands(message)
 
 
 @bot.slash_command()

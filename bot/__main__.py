@@ -98,7 +98,8 @@ async def on_message(message: discord.Message):
     translated_text, status = await translate(message.content)
     if status != 200:
         return
-    await message.reply(translated_text, mention_author=False)
+    sent_message = await message.reply(translated_text, mention_author=False)
+    await sent_message.add_reaction('❌')
 
 
 @bot.event

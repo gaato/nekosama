@@ -101,6 +101,7 @@ async def role_list(ctx: discord.ApplicationContext):
     await ctx.respond(embed=embed)
 
 
+# 複数のロールを与えると AND 検索
 @role.command(
     name='members',
     description='Show members of the role.',
@@ -108,11 +109,17 @@ async def role_list(ctx: discord.ApplicationContext):
         'ja': 'ロールのメンバー一覧を表示します',
     },
 )
-async def role_members(ctx: discord.ApplicationContext, role: discord.Role):
-    content = f'{role.name}のメンバー一覧\n```\n' + \
-        '\n'.join([member.display_name for member in role.members]) + \
-        '\n```'
-    await ctx.respond(content)
+async def role_members(
+    ctx: discord.ApplicationContext,
+    role1: discord.Role,
+    role2: Optional[discord.Role] = None,
+    role3: Optional[discord.Role] = None,
+):
+    roles = [role1, role2, role3]
+    roles = [role for role in roles if role is not None]
+    members = set.intersection(*(set(role.members) for role in roles))
+    content = '\n'.join([member.display_name for member in members])
+    await ctx.respond(f'{[role.name for role in roles]}\n```\n{content}\n```')
 
 
 @bot.message_command(name='JP -> EN')

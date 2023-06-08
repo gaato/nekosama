@@ -99,8 +99,14 @@ async def on_message(message: discord.Message):
     if status != 200:
         return
     await message.reply(translated_text, mention_author=False)
-    await bot.process_commands(message)
 
+
+@bot.event
+async def on_reaction_add(reaction: discord.Reaction, user: discord.User):
+    if user.bot:
+        return
+    if reaction.message.author.id == bot.user.id and reaction.emoji == '❌':
+        await reaction.message.delete()
 
 @bot.slash_command()
 async def ping(ctx):

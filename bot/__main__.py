@@ -99,14 +99,14 @@ async def on_message(message: discord.Message):
     if status != 200:
         return
     sent_message = await message.reply(translated_text, mention_author=False)
-    await sent_message.add_reaction('❌')
+    await sent_message.add_reaction('🗑️')
 
 
 @bot.event
 async def on_reaction_add(reaction: discord.Reaction, user: discord.User):
     if user.bot:
         return
-    if reaction.message.author.id == bot.user.id and reaction.emoji == '❌':
+    if reaction.message.author.id == bot.user.id and reaction.emoji == '🗑️':
         await reaction.message.delete()
 
 @bot.slash_command()

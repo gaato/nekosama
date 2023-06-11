@@ -42,6 +42,30 @@ jp_to_en_cache = LimitedSizeDict(size_limit=100)
 en_to_jp_cache = LimitedSizeDict(size_limit=100)
 
 
+async def detect(text: str):
+    key = os.environ['TL_KEY']
+    endpoint = 'https://api.cognitive.microsofttranslator.com'
+    path = '/detect'
+    constructed_url = endpoint + path
+    region = 'japaneast'
+    params = [('api-version', '3.0')]
+    headers = {
+        'Ocp-Apim-Subscription-Key': key,
+        'Ocp-Apim-Subscription-Region': region,
+        'Content-type': 'application/json',
+        'X-ClientTraceId': str(uuid.uuid4())
+    }
+    body = [{'text': text}]
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url=constructed_url, params=params, headers=headers, json=body) as response:
+            if response.status != 200:
+                print(await response.text())
+                return None, response.status
+            res = await response.json()
+            return res[0]['language'], response.status
+
+
 async def translate(text, dest=['en', 'ja'], src=None):
     key = os.environ['TL_KEY']
     endpoint = 'https://api.cognitive.microsofttranslator.com'
@@ -95,7 +119,13 @@ async def on_ready():
 async def on_message(message: discord.Message):
     if message.author.bot:
         return
-    translated_text, status = await translate(message.content)
+    detected_lang, status = await detect(message.content)
+    if status != 200:
+        return
+    if detected_lang in ('ja', 'zh-Hans'):
+        translated_text, status = await translate(message.content, src='ja', dest='en')
+    elif detected_lang == 'en':
+        translated_text, status = await translate(message.content, src='en', dest='ja')
     if status != 200:
         return
     sent_message = await message.reply(translated_text, mention_author=False)
@@ -109,12 +139,14 @@ async def on_reaction_add(reaction: discord.Reaction, user: discord.User):
     if reaction.message.author.id == bot.user.id and reaction.emoji == '🗑️':
         await reaction.message.delete()
 
+
 @bot.slash_command()
 async def ping(ctx):
     await ctx.respond(f"Pong! ({bot.latency*1000}ms)")
 
 
 role = bot.create_group('role', description='Role commands')
+
 
 @role.command(
     name='list',

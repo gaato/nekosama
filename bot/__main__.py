@@ -130,6 +130,7 @@ async def on_message(message: discord.Message):
     if status != 200:
         return
     translated_text = re.sub(r'<@!?(\d+)>', lambda m: guild.get_member(int(m.group(1))).display_name, translated_text)
+    translated_text = discord.utils.escape_mentions(translated_text)
     translated_text = re.sub(r'(?<!<)(https?://\S+)(?!>)', r'<\1>', translated_text)
     sent_message = await message.reply(translated_text, mention_author=False)
     await sent_message.add_reaction('🗑️')

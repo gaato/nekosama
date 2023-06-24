@@ -3,12 +3,12 @@ import os
 import re
 import uuid
 from collections import OrderedDict
-from typing import List, Optional
+from typing import Optional
+import traceback
 
 import aiohttp
 import discord
 from discord.ext import commands, tasks
-from discord.ui.input_text import InputText
 from dotenv import load_dotenv
 
 from .views import AgreementButtonView
@@ -21,7 +21,6 @@ intents.message_content = True
 bot = commands.Bot(intents=intents)
 
 guild: Optional[discord.Guild] = None
-events: List[discord.ScheduledEvent] = []
 
 
 class LimitedSizeDict(OrderedDict):
@@ -147,8 +146,7 @@ async def on_ready():
     bot.add_view(TranslateResponseView())
     global guild
     guild = bot.get_guild(guild_id)
-    get_events.start()
-    check_events.start()
+    fetch_events.start()
 
 
 @bot.event
@@ -341,22 +339,23 @@ async def unixtimestamp(
 
 
 @tasks.loop(minutes=1)
-async def get_events():
-    global events
+async def fetch_events():
     events = await guild.fetch_scheduled_events()
-    print(events)
-
-
-@tasks.loop(seconds=10)
-async def check_events():
-    global events
-    for event in events:
+    upcomming_events = filter(
+        lambda e: datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=4) < \
+            e.start_time < datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5),
+        await guild.fetch_scheduled_events()
+    )
+    for event in upcomming_events:
         if datetime.timedelta(minutes=4) < event.start_time - datetime.datetime.now(datetime.timezone.utc) < datetime.timedelta(minutes=5):
             if ids := teams.get(event.location.value.id):
                 role = guild.get_role(ids[0]) if ids[0] else None
                 channel = guild.get_channel(ids[1])
                 await channel.send(f'{role.mention if role else "@everyone"}\n__**{event.name}**__ が {event.location.value.jump_url} で __**5 分後**__に始まります！\n{event.url}')
-                events.remove(event)
+                try:
+                    await event.start()
+                except Exception:
+                    traceback.print_exc()
 
 
 bot.run(os.environ.get('DISCORD_TOKEN'))

@@ -8,6 +8,7 @@ from typing import List, Optional
 import aiohttp
 import discord
 from discord.ext import commands, tasks
+from discord.ui.input_text import InputText
 from dotenv import load_dotenv
 
 from .views import AgreementButtonView
@@ -41,6 +42,7 @@ class LimitedSizeDict(OrderedDict):
 
 jp_to_en_cache = LimitedSizeDict(size_limit=100)
 en_to_jp_cache = LimitedSizeDict(size_limit=100)
+translated_messages = LimitedSizeDict(size_limit=100)
 
 
 async def detect(text: str):
@@ -105,11 +107,44 @@ async def translate(text, dest=['en', 'ja'], src=None):
                 return res[0]['translations'][0]['text'], response.status
 
 
+class TranslateResponseView(discord.ui.View):
+    def __init__(self, **kwargs):
+        super().__init__(timeout=None, **kwargs)
+
+    @discord.ui.button(label='Delete', style=discord.ButtonStyle.danger, custom_id='delete')
+    async def delete_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await interaction.message.delete()
+
+    @discord.ui.button(label='Edit', style=discord.ButtonStyle.secondary, custom_id='edit')
+    async def edit_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await interaction.response.send_modal(EditModal(interaction.message))
+
+
+class EditModal(discord.ui.Modal):
+    def __init__(self, message, title='Edit', **kwargs):
+        super().__init__(title=title, **kwargs)
+        self.message = message
+        self.add_item(discord.ui.InputText(
+            label='Edit',
+            value=message.content,
+        ))
+
+    async def callback(self, interaction: discord.Interaction):
+        embed = discord.Embed()
+        embed.set_footer(
+            text=f'Edited by {interaction.user.display_name}',
+            icon_url=interaction.user.display_avatar.url,
+        )
+        await self.message.edit(content=self.children[0].value, embed=embed)
+        await interaction.response.send_message('Edited!', ephemeral=True)
+
+
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     print("------")
     bot.add_view(AgreementButtonView(bot))
+    bot.add_view(TranslateResponseView())
     global guild
     guild = bot.get_guild(guild_id)
     get_events.start()
@@ -132,16 +167,33 @@ async def on_message(message: discord.Message):
     translated_text = re.sub(r'<@!?(\d+)>', lambda m: guild.get_member(int(m.group(1))).display_name, translated_text)
     translated_text = discord.utils.escape_mentions(translated_text)
     translated_text = re.sub(r'(?<!<)(https?://\S+)(?!>)', r'<\1>', translated_text)
-    sent_message = await message.reply(translated_text, mention_author=False)
-    await sent_message.add_reaction('🗑️')
+    view = TranslateResponseView()
+    m = await message.reply(translated_text, mention_author=False, view=view)
+    translated_messages[message.id] = m
 
 
 @bot.event
-async def on_reaction_add(reaction: discord.Reaction, user: discord.User):
-    if user.bot:
+async def on_message_edit(before: discord.Message, after: discord.Message):
+    if before.author.bot:
         return
-    if reaction.message.author.id == bot.user.id and reaction.emoji == '🗑️':
-        await reaction.message.delete()
+    detected_lang, status = await detect(after.content)
+    if status != 200:
+        return
+    if detected_lang in ('ja', 'zh-Hans'):
+        translated_text, status = await translate(after.content, src='ja', dest='en')
+    elif detected_lang == 'en':
+        translated_text, status = await translate(after.content, src='en', dest='ja')
+    if status != 200:
+        return
+    translated_text = re.sub(r'<@!?(\d+)>', lambda m: guild.get_member(int(m.group(1))).display_name, translated_text)
+    translated_text = discord.utils.escape_mentions(translated_text)
+    translated_text = re.sub(r'(?<!<)(https?://\S+)(?!>)', r'<\1>', translated_text)
+    response = translated_messages.get(before.id)
+    if response is None:
+        return
+    view = TranslateResponseView()
+    m = await response.edit(content=translated_text, view=view, embed=None)
+    translated_messages[before.id] = m
 
 
 @bot.slash_command()

@@ -126,6 +126,7 @@ class EditModal(discord.ui.Modal):
         self.add_item(discord.ui.InputText(
             label='Edit',
             value=message.content,
+            style=discord.InputTextStyle.long,
         ))
 
     async def callback(self, interaction: discord.Interaction):

@@ -167,8 +167,9 @@ async def on_message(message: discord.Message):
     translated_text = re.sub(r'<@!?(\d+)>', lambda m: guild.get_member(int(m.group(1))).display_name, translated_text)
     translated_text = discord.utils.escape_mentions(translated_text)
     translated_text = re.sub(r'(?<!<)(https?://\S+)(?!>)', r'<\1>', translated_text)
-    view = TranslateResponseView()
-    m = await message.reply(translated_text, mention_author=False, view=view)
+    # view = TranslateResponseView()
+    # m = await message.reply(translated_text, mention_author=False, view=view)
+    m = await message.reply(translated_text, mention_author=False)
     translated_messages[message.id] = m
 
 
@@ -193,8 +194,9 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
     response = translated_messages.get(before.id)
     if response is None:
         return
-    view = TranslateResponseView()
-    m = await response.edit(content=translated_text, view=view, embed=None)
+    # view = TranslateResponseView()
+    # m = await response.edit(content=translated_text, view=view, embed=None)
+    m = await response.edit(content=translated_text, embed=None)
     translated_messages[before.id] = m
 
 
@@ -242,30 +244,47 @@ async def role_members(
     await ctx.respond(f'{[role.name for role in roles]}\n```\n{content}\n```')
 
 
-@bot.message_command(name='JP -> EN')
-async def jp_to_en(ctx: discord.ApplicationContext, message: discord.Message):
-    if message.content in jp_to_en_cache:
-        await ctx.respond(jp_to_en_cache[message.content], ephemeral=True)
+@bot.message_command(name='Delete')
+async def delete(ctx: discord.ApplicationContext, message: discord.Message):
+    if message.author.id != bot.user.id:
+        await ctx.respond('You can only delete messages sent by me.', ephemeral=True)
         return
-    translated_text, status = await translate(message.content, src='ja', dest='en')
-    if status != 200:
-        await ctx.respond(f'Error: {status}')
-        return
-    jp_to_en_cache[message.content] = translated_text
-    await ctx.respond(translated_text, ephemeral=True)
+    await message.delete()
+    await ctx.respond('Deleted!', ephemeral=True)
 
 
-@bot.message_command(name='EN -> JP')
-async def en_to_jp(ctx: discord.ApplicationContext, message: discord.Message):
-    if message.content in en_to_jp_cache:
-        await ctx.respond(en_to_jp_cache[message.content], ephemeral=True)
+@bot.message_command(name='Edit')
+async def edit(ctx: discord.ApplicationContext, message: discord.Message):
+    if message.author.id != bot.user.id:
+        await ctx.respond('You can only edit messages sent by me.', ephemeral=True)
         return
-    translated_text, status = await translate(message.content, src='en', dest='ja')
-    if status != 200:
-        await ctx.respond(f'Error: {status}')
-        return
-    en_to_jp_cache[message.content] = translated_text
-    await ctx.respond(translated_text, ephemeral=True)
+    await ctx.send_modal(EditModal(message))
+
+
+# @bot.message_command(name='JP -> EN')
+# async def jp_to_en(ctx: discord.ApplicationContext, message: discord.Message):
+#     if message.content in jp_to_en_cache:
+#         await ctx.respond(jp_to_en_cache[message.content], ephemeral=True)
+#         return
+#     translated_text, status = await translate(message.content, src='ja', dest='en')
+#     if status != 200:
+#         await ctx.respond(f'Error: {status}')
+#         return
+#     jp_to_en_cache[message.content] = translated_text
+#     await ctx.respond(translated_text, ephemeral=True)
+
+
+# @bot.message_command(name='EN -> JP')
+# async def en_to_jp(ctx: discord.ApplicationContext, message: discord.Message):
+#     if message.content in en_to_jp_cache:
+#         await ctx.respond(en_to_jp_cache[message.content], ephemeral=True)
+#         return
+#     translated_text, status = await translate(message.content, src='en', dest='ja')
+#     if status != 200:
+#         await ctx.respond(f'Error: {status}')
+#         return
+#     en_to_jp_cache[message.content] = translated_text
+#     await ctx.respond(translated_text, ephemeral=True)
 
 
 @bot.slash_command(

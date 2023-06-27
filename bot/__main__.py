@@ -11,7 +11,6 @@ import discord
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
-from .views import AgreementButtonView
 from .config import guild_id, teams
 
 load_dotenv()
@@ -143,7 +142,6 @@ class EditModal(discord.ui.Modal):
 async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     print("------")
-    bot.add_view(AgreementButtonView(bot))
     bot.add_view(TranslateResponseView())
     global guild
     guild = bot.get_guild(guild_id)

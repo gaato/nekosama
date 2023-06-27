@@ -154,6 +154,9 @@ async def on_ready():
 async def on_message(message: discord.Message):
     if message.author.bot:
         return
+    # message.content にURLとメンションと絵文字しかない場合は翻訳しない
+    if re.fullmatch(r'((https?://\S+)|(<@!?(\d+)>|<a?:\w+:\d+>))+', message.content):
+        return
     detected_lang, status = await detect(message.content)
     if status != 200:
         return

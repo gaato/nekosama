@@ -176,6 +176,8 @@ async def on_message(message: discord.Message):
 async def on_message_edit(before: discord.Message, after: discord.Message):
     if before.author.bot:
         return
+    if before.content == after.content:
+        return
     detected_lang, status = await detect(after.content)
     if status != 200:
         return

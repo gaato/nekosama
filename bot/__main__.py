@@ -153,7 +153,8 @@ async def on_message(message: discord.Message):
     if message.author.bot:
         return
     # message.content にURLとメンションと絵文字しかない場合は翻訳しない
-    if re.fullmatch(r'((https?://\S+)|(<@!?(\d+)>|<a?:\w+:\d+>))+', message.content):
+    modified_text = re.sub(r'<.*?>|:.*?:', '', message.content)
+    if len(modfified_text.strip()) == 0:
         return
     detected_lang, status = await detect(message.content)
     if status != 200:
@@ -178,6 +179,10 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
     if before.author.bot:
         return
     if before.content == after.content:
+        return
+    # after.content にURLとメンションと絵文字しかない場合は翻訳しない
+    modified_text = re.sub(r'<.*?>|:.*?:', '', after.content)
+    if len(modfified_text.strip()) == 0:
         return
     detected_lang, status = await detect(after.content)
     if status != 200:

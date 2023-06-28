@@ -154,7 +154,7 @@ async def on_message(message: discord.Message):
         return
     # message.content にURLとメンションと絵文字しかない場合は翻訳しない
     modified_text = re.sub(r'<.*?>|:.*?:', '', message.content)
-    if len(modfified_text.strip()) == 0:
+    if len(modified_text.strip()) == 0:
         return
     detected_lang, status = await detect(message.content)
     if status != 200:
@@ -182,7 +182,7 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
         return
     # after.content にURLとメンションと絵文字しかない場合は翻訳しない
     modified_text = re.sub(r'<.*?>|:.*?:', '', after.content)
-    if len(modfified_text.strip()) == 0:
+    if len(modified_text.strip()) == 0:
         return
     detected_lang, status = await detect(after.content)
     if status != 200:

@@ -165,7 +165,7 @@ async def on_message(message: discord.Message):
         translated_text, status = await translate(message.content, src='en', dest='ja')
     if status != 200:
         return
-    translated_text = re.sub(r'<@!?(\d+)>', lambda m: guild.get_member(int(m.group(1))).display_name, translated_text)
+    translated_text = re.sub(r'<@!?(\d+)>', lambda m: message.guild.get_member(int(m.group(1))).display_name, translated_text)
     translated_text = discord.utils.escape_mentions(translated_text)
     translated_text = re.sub(r'(?<!<)(https?://\S+)(?!>)', r'<\1>', translated_text)
     # view = TranslateResponseView()
@@ -193,7 +193,7 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
         translated_text, status = await translate(after.content, src='en', dest='ja')
     if status != 200:
         return
-    translated_text = re.sub(r'<@!?(\d+)>', lambda m: guild.get_member(int(m.group(1))).display_name, translated_text)
+    translated_text = re.sub(r'<@!?(\d+)>', lambda m: message.guild.get_member(int(m.group(1))).display_name, translated_text)
     translated_text = discord.utils.escape_mentions(translated_text)
     translated_text = re.sub(r'(?<!<)(https?://\S+)(?!>)', r'<\1>', translated_text)
     response = translated_messages.get(before.id)

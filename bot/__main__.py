@@ -153,7 +153,8 @@ async def on_message(message: discord.Message):
     if message.author.bot:
         return
     # message.content にURLとメンションと絵文字しかない場合は翻訳しない
-    if re.fullmatch(r'((https?://\S+)|(<@!?(\d+)>|<a?:\w+:\d+>))+', message.content):
+    modified_text = re.sub(r'<.*?>|:.*?:', '', message.content)
+    if len(modified_text.strip()) == 0:
         return
     detected_lang, status = await detect(message.content)
     if status != 200:
@@ -164,7 +165,7 @@ async def on_message(message: discord.Message):
         translated_text, status = await translate(message.content, src='en', dest='ja')
     if status != 200:
         return
-    translated_text = re.sub(r'<@!?(\d+)>', lambda m: guild.get_member(int(m.group(1))).display_name, translated_text)
+    translated_text = re.sub(r'<@!?(\d+)>', lambda m: message.guild.get_member(int(m.group(1))).display_name, translated_text)
     translated_text = discord.utils.escape_mentions(translated_text)
     translated_text = re.sub(r'(?<!<)(https?://\S+)(?!>)', r'<\1>', translated_text)
     embed = discord.Embed(description=translated_text)
@@ -180,6 +181,10 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
         return
     if before.content == after.content:
         return
+    # after.content にURLとメンションと絵文字しかない場合は翻訳しない
+    modified_text = re.sub(r'<.*?>|:.*?:', '', after.content)
+    if len(modified_text.strip()) == 0:
+        return
     detected_lang, status = await detect(after.content)
     if status != 200:
         return
@@ -189,7 +194,7 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
         translated_text, status = await translate(after.content, src='en', dest='ja')
     if status != 200:
         return
-    translated_text = re.sub(r'<@!?(\d+)>', lambda m: guild.get_member(int(m.group(1))).display_name, translated_text)
+    translated_text = re.sub(r'<@!?(\d+)>', lambda m: message.guild.get_member(int(m.group(1))).display_name, translated_text)
     translated_text = discord.utils.escape_mentions(translated_text)
     translated_text = re.sub(r'(?<!<)(https?://\S+)(?!>)', r'<\1>', translated_text)
     response = translated_messages.get(before.id)

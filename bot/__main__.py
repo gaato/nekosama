@@ -167,9 +167,10 @@ async def on_message(message: discord.Message):
     translated_text = re.sub(r'<@!?(\d+)>', lambda m: guild.get_member(int(m.group(1))).display_name, translated_text)
     translated_text = discord.utils.escape_mentions(translated_text)
     translated_text = re.sub(r'(?<!<)(https?://\S+)(?!>)', r'<\1>', translated_text)
+    embed = discord.Embed(description=translated_text)
     # view = TranslateResponseView()
     # m = await message.reply(translated_text, mention_author=False, view=view)
-    m = await message.reply(translated_text, mention_author=False)
+    m = await message.reply(embed=embed, mention_author=False)
     translated_messages[message.id] = m
 
 
@@ -194,9 +195,10 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
     response = translated_messages.get(before.id)
     if response is None:
         return
+    embed = discord.Embed(description=translated_text)
     # view = TranslateResponseView()
     # m = await response.edit(content=translated_text, view=view, embed=None)
-    m = await response.edit(content=translated_text, embed=None)
+    m = await response.edit(embed=embed)
     translated_messages[before.id] = m
 
 

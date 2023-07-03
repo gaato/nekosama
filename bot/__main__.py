@@ -119,22 +119,22 @@ class TranslateResponseView(discord.ui.View):
 
 
 class EditModal(discord.ui.Modal):
-    def __init__(self, message, title='Edit', **kwargs):
+    def __init__(self, message: discord.Message, title='Edit', **kwargs):
         super().__init__(title=title, **kwargs)
         self.message = message
         self.add_item(discord.ui.InputText(
-            label='Edit',
+            label='Edit translation',
             value=message.content,
             style=discord.InputTextStyle.long,
         ))
 
     async def callback(self, interaction: discord.Interaction):
-        embed = discord.Embed()
+        embed = discord.Embed(description=self.children[0].value)
         embed.set_footer(
             text=f'Edited by {interaction.user.display_name}',
             icon_url=interaction.user.display_avatar.url,
         )
-        await self.message.edit(content=self.children[0].value, embed=embed)
+        await self.message.edit(embed=embed)
         await interaction.response.send_message('Edited!', ephemeral=True)
 
 
@@ -194,7 +194,7 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
         translated_text, status = await translate(after.content, src='en', dest='ja')
     if status != 200:
         return
-    translated_text = re.sub(r'<@!?(\d+)>', lambda m: message.guild.get_member(int(m.group(1))).display_name, translated_text)
+    translated_text = re.sub(r'<@!?(\d+)>', lambda m: after.guild.get_member(int(m.group(1))).display_name, translated_text)
     translated_text = discord.utils.escape_mentions(translated_text)
     translated_text = re.sub(r'(?<!<)(https?://\S+)(?!>)', r'<\1>', translated_text)
     response = translated_messages.get(before.id)
@@ -205,6 +205,14 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
     # m = await response.edit(content=translated_text, view=view, embed=None)
     m = await response.edit(embed=embed)
     translated_messages[before.id] = m
+
+
+@bot.event
+async def on_message_delete(message: discord.Message):
+    response = translated_messages.pop(message.id, None)
+    if response is None:
+        return
+    await response.delete()
 
 
 @bot.slash_command()

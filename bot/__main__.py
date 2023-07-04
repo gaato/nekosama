@@ -1,10 +1,11 @@
 import datetime
 import os
+import random
 import re
+import traceback
 import uuid
 from collections import OrderedDict
 from typing import Optional
-import traceback
 
 import aiohttp
 import discord
@@ -256,6 +257,24 @@ async def role_members(
     members = set.intersection(*(set(role.members) for role in roles))
     content = '\n'.join([member.display_name for member in members])
     await ctx.respond(f'{[role.name for role in roles]}\n```\n{content}\n```')
+
+
+@bot.slash_command(
+    name='pick',
+    description='Pick a random member from the role.',
+    description_localizations={
+        'ja': 'ロールからランダムにメンバーを選びます。',
+    },
+)
+async def pick(ctx: discord.ApplicationContext, role: discord.Role):
+    members = role.members
+    if not members:
+        await ctx.respond('No members in the role.', ephemeral=True)
+        return
+    member = random.choice(members)
+    embed = discord.Embed(color=0xb190fc, title=f'Picked a random member from {role.name}')
+    embed.add_field(name=member.display_name, value=member.mention)
+    await ctx.respond(embed=embed)
 
 
 @bot.message_command(name='Delete')

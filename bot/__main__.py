@@ -153,7 +153,7 @@ async def on_message(message: discord.Message):
     if message.author.bot:
         return
     # message.content にURLとメンションと絵文字しかない場合は翻訳しない
-    modified_text = re.sub(r'<.*?>|:.*?:', '', message.content)
+    modified_text = re.sub(r'<.*?>|:.*?:|https?://[\w!?/\+\-_~=;\.,*&@#$%\(\)\'\[\]]+', '', message.content)
     if len(modified_text.strip()) == 0:
         return
     detected_lang, status = await detect(message.content)
@@ -161,13 +161,10 @@ async def on_message(message: discord.Message):
         return
     if detected_lang in ('ja', 'zh-Hans'):
         translated_text, status = await translate(message.content, src='ja', dest='en')
-    elif detected_lang == 'en':
+    else:
         translated_text, status = await translate(message.content, src='en', dest='ja')
     if status != 200:
         return
-    translated_text = re.sub(r'<@!?(\d+)>', lambda m: message.guild.get_member(int(m.group(1))).display_name, translated_text)
-    translated_text = discord.utils.escape_mentions(translated_text)
-    translated_text = re.sub(r'(?<!<)(https?://\S+)(?!>)', r'<\1>', translated_text)
     embed = discord.Embed(description=translated_text)
     # view = TranslateResponseView()
     # m = await message.reply(translated_text, mention_author=False, view=view)
@@ -182,7 +179,7 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
     if before.content == after.content:
         return
     # after.content にURLとメンションと絵文字しかない場合は翻訳しない
-    modified_text = re.sub(r'<.*?>|:.*?:', '', after.content)
+    modified_text = re.sub(r'<.*?>|:.*?:|https?://[\w!?/\+\-_~=;\.,*&@#$%\(\)\'\[\]]+', '', after.content)
     if len(modified_text.strip()) == 0:
         return
     detected_lang, status = await detect(after.content)
@@ -190,13 +187,10 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
         return
     if detected_lang in ('ja', 'zh-Hans'):
         translated_text, status = await translate(after.content, src='ja', dest='en')
-    elif detected_lang == 'en':
+    else:
         translated_text, status = await translate(after.content, src='en', dest='ja')
     if status != 200:
         return
-    translated_text = re.sub(r'<@!?(\d+)>', lambda m: after.guild.get_member(int(m.group(1))).display_name, translated_text)
-    translated_text = discord.utils.escape_mentions(translated_text)
-    translated_text = re.sub(r'(?<!<)(https?://\S+)(?!>)', r'<\1>', translated_text)
     response = translated_messages.get(before.id)
     if response is None:
         return

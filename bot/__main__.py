@@ -129,7 +129,8 @@ class EditModal(discord.ui.Modal):
         ))
 
     async def callback(self, interaction: discord.Interaction):
-        embed = discord.Embed(description=self.children[0].value)
+        embed = self.message.embeds[0]
+        embed.description = self.children[0].value
         embed.set_footer(
             text=f'Edited by {interaction.user.display_name}',
             icon_url=interaction.user.display_avatar.url,
@@ -160,12 +161,14 @@ async def on_message(message: discord.Message):
     if status != 200:
         return
     if detected_lang in ('ja', 'zh-Hans'):
+        color = 0x87ceeb
         translated_text, status = await translate(message.content, src='ja', dest='en')
     else:
+        color = 0x90ee90
         translated_text, status = await translate(message.content, src='en', dest='ja')
     if status != 200:
         return
-    embed = discord.Embed(description=translated_text)
+    embed = discord.Embed(description=translated_text, color=color)
     # view = TranslateResponseView()
     # m = await message.reply(translated_text, mention_author=False, view=view)
     m = await message.reply(embed=embed, mention_author=False)
@@ -186,15 +189,17 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
     if status != 200:
         return
     if detected_lang in ('ja', 'zh-Hans'):
+        color = 0x87ceeb
         translated_text, status = await translate(after.content, src='ja', dest='en')
     else:
+        color = 0x90ee90
         translated_text, status = await translate(after.content, src='en', dest='ja')
     if status != 200:
         return
     response = translated_messages.get(before.id)
     if response is None:
         return
-    embed = discord.Embed(description=translated_text)
+    embed = discord.Embed(description=translated_text, color=color)
     # view = TranslateResponseView()
     # m = await response.edit(content=translated_text, view=view, embed=None)
     m = await response.edit(embed=embed)

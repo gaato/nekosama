@@ -125,7 +125,7 @@ class EditModal(discord.ui.Modal):
         self.message = message
         self.add_item(discord.ui.InputText(
             label='Edit translation',
-            value=message.content,
+            value=message.embeds[0].description,
             style=discord.InputTextStyle.long,
         ))
 

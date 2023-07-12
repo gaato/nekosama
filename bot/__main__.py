@@ -11,6 +11,7 @@ import aiohttp
 import discord
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
+from googletrans import Translator
 
 from .config import guild_id, teams
 
@@ -19,6 +20,8 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 bot = commands.Bot(intents=intents)
+
+translator  = Translator()
 
 guild: Optional[discord.Guild] = None
 
@@ -45,65 +48,67 @@ translated_messages = LimitedSizeDict(size_limit=100)
 
 
 async def detect(text: str):
-    key = os.environ['TL_KEY']
-    endpoint = 'https://api.cognitive.microsofttranslator.com'
-    path = '/detect'
-    constructed_url = endpoint + path
-    region = 'japaneast'
-    params = [('api-version', '3.0')]
-    headers = {
-        'Ocp-Apim-Subscription-Key': key,
-        'Ocp-Apim-Subscription-Region': region,
-        'Content-type': 'application/json',
-        'X-ClientTraceId': str(uuid.uuid4())
-    }
-    body = [{'text': text}]
+    return translator.detect(text).lang, 200
+    # key = os.environ['TL_KEY']
+    # endpoint = 'https://api.cognitive.microsofttranslator.com'
+    # path = '/detect'
+    # constructed_url = endpoint + path
+    # region = 'japaneast'
+    # params = [('api-version', '3.0')]
+    # headers = {
+    #     'Ocp-Apim-Subscription-Key': key,
+    #     'Ocp-Apim-Subscription-Region': region,
+    #     'Content-type': 'application/json',
+    #     'X-ClientTraceId': str(uuid.uuid4())
+    # }
+    # body = [{'text': text}]
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url=constructed_url, params=params, headers=headers, json=body) as response:
-            if response.status != 200:
-                print(await response.text())
-                return None, response.status
-            res = await response.json()
-            return res[0]['language'], response.status
+    # async with aiohttp.ClientSession() as session:
+    #     async with session.post(url=constructed_url, params=params, headers=headers, json=body) as response:
+    #         if response.status != 200:
+    #             print(await response.text())
+    #             return None, response.status
+    #         res = await response.json()
+    #         return res[0]['language'], response.status
 
 
 async def translate(text, dest=['en', 'ja'], src=None):
-    key = os.environ['TL_KEY']
-    endpoint = 'https://api.cognitive.microsofttranslator.com'
-    path = '/translate'
-    constructed_url = endpoint + path
-    region = 'japaneast'
-    params = [('api-version', '3.0')]
-    if src is not None:
-        params.append(('from', src))
-    if isinstance(dest, list):
-        for d in dest:
-            params.append(('to', d))
-    else:
-        params.append(('to', dest))
-    headers = {
-        'Ocp-Apim-Subscription-Key': key,
-        'Ocp-Apim-Subscription-Region': region,
-        'Content-type': 'application/json',
-        'X-ClientTraceId': str(uuid.uuid4())
-    }
-    body = [{'text': text}]
+    return translator.translate(text, dest=dest, src=src).text, 200
+    # key = os.environ['TL_KEY']
+    # endpoint = 'https://api.cognitive.microsofttranslator.com'
+    # path = '/translate'
+    # constructed_url = endpoint + path
+    # region = 'japaneast'
+    # params = [('api-version', '3.0')]
+    # if src is not None:
+    #     params.append(('from', src))
+    # if isinstance(dest, list):
+    #     for d in dest:
+    #         params.append(('to', d))
+    # else:
+    #     params.append(('to', dest))
+    # headers = {
+    #     'Ocp-Apim-Subscription-Key': key,
+    #     'Ocp-Apim-Subscription-Region': region,
+    #     'Content-type': 'application/json',
+    #     'X-ClientTraceId': str(uuid.uuid4())
+    # }
+    # body = [{'text': text}]
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url=constructed_url, params=params, headers=headers, json=body) as response:
-            if response.status != 200:
-                print(await response.text())
-                return None, response.status
-            res = await response.json()
-            if src is None:
-                match res[0]['detectedLanguage']['language']:
-                    case 'ja':
-                        return res[0]['translations'][0]['text'], response.status
-                    case 'en':
-                        return res[0]['translations'][1]['text'], response.status
-            else:
-                return res[0]['translations'][0]['text'], response.status
+    # async with aiohttp.ClientSession() as session:
+    #     async with session.post(url=constructed_url, params=params, headers=headers, json=body) as response:
+    #         if response.status != 200:
+    #             print(await response.text())
+    #             return None, response.status
+    #         res = await response.json()
+    #         if src is None:
+    #             match res[0]['detectedLanguage']['language']:
+    #                 case 'ja':
+    #                     return res[0]['translations'][0]['text'], response.status
+    #                 case 'en':
+    #                     return res[0]['translations'][1]['text'], response.status
+    #         else:
+    #             return res[0]['translations'][0]['text'], response.status
 
 
 class TranslateResponseView(discord.ui.View):

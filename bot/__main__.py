@@ -9,6 +9,7 @@ from typing import Optional
 
 import aiohttp
 import discord
+import openai
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 from googletrans import Translator
@@ -24,6 +25,8 @@ bot = commands.Bot(intents=intents)
 translator = Translator()
 
 guild: Optional[discord.Guild] = None
+
+openai.api_key = os.environ["OPENAI_API_KEY"]
 
 
 class LimitedSizeDict(OrderedDict):
@@ -168,6 +171,56 @@ async def on_ready():
 @bot.event
 async def on_message(message: discord.Message):
     if message.author.bot:
+        return
+    # 自分が作ったスレッドではメンションされなくても ChatGPT で返信
+    if (
+        isinstance(message.channel, discord.Thread)
+        and message.channel.owner == bot.user
+    ):
+        with message.channel.typing():
+            history = await message.channel.history(
+                limit=5, oldest_first=True
+            ).flatten()
+            if history[0].type == discord.MessageType.thread_starter_message:
+                history[0] = history[0].reference.resolved
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Since this is a Discord, you can use Markdown.",
+                    }
+                ]
+                + [
+                    {
+                        "role": "assistant" if m.author == bot.user else "user",
+                        "content": re.sub(r"<@!?[0-9]+>", "", m.content),
+                    }
+                    for m in history
+                ],
+            )
+            await message.reply(response.choices[0].message.content)
+        return
+    # メンションされたら ChatGPT で返信
+    if bot.user in message.mentions:
+        with message.channel.typing():
+            content = message.content.replace(f"<@!{bot.user.id}>", "").strip()
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": content,
+                    },
+                ],
+            )
+            thread = await message.channel.create_thread(
+                name=message.content,
+                message=message,
+            )
+            await thread.send(
+                f"{message.author.mention}\n{response.choices[0].message.content}"
+            )
         return
     # message.content にURLとメンションと絵文字しかない場合は翻訳しない
     modified_text = re.sub(
@@ -473,4 +526,4 @@ async def fetch_events():
                     traceback.print_exc()
 
 
-bot.run(os.environ.get("DISCORD_TOKEN"))
+bot.run(os.environ["DISCORD_TOKEN"])

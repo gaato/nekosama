@@ -214,13 +214,18 @@ async def on_message(message: discord.Message):
                     },
                 ],
             )
-            thread = await message.channel.create_thread(
-                name=message.content,
-                message=message,
-            )
-            await thread.send(
-                f"{message.author.mention}\n{response.choices[0].message.content}"
-            )
+            if isinstance(message.channel, discord.Thread):
+                await message.channel.send(
+                    f"{message.author.mention}\n{response.choices[0].message.content}",
+                )
+            else:
+                thread = await message.channel.create_thread(
+                    name=message.content,
+                    message=message,
+                )
+                await thread.send(
+                    f"{message.author.mention}\n{response.choices[0].message.content}"
+                )
         return
     # message.content にURLとメンションと絵文字しかない場合は翻訳しない
     modified_text = re.sub(

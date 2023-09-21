@@ -220,7 +220,7 @@ async def on_message(message: discord.Message):
                 )
             else:
                 thread = await message.channel.create_thread(
-                    name=message.content,
+                    name=f"Chat with {message.author.nick or message.author.display_name}",
                     message=message,
                 )
                 await thread.send(

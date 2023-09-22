@@ -179,7 +179,7 @@ async def on_message(message: discord.Message):
     ):
         with message.channel.typing():
             history = await message.channel.history(
-                limit=5, oldest_first=True
+                limit=10, oldest_first=True
             ).flatten()
             if history[0].type == discord.MessageType.thread_starter_message:
                 history[0] = history[0].reference.resolved

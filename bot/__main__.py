@@ -199,18 +199,22 @@ async def on_message(message: discord.Message):
                     for m in history
                 ],
             )
-            await message.reply(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            # 2000 文字ごとに分割して送信
+            for i in range(0, len(content), 2000):
+                await message.reply(content[i : i + 2000])
         return
     # メンションされたら ChatGPT で返信
     if bot.user in message.mentions:
         with message.channel.typing():
-            content = message.content.replace(f"<@!{bot.user.id}>", "").strip()
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
                     {
                         "role": "user",
-                        "content": content,
+                        "content": message.content.replace(
+                            f"<@!{bot.user.id}>", ""
+                        ).strip(),
                     },
                 ],
             )
@@ -223,10 +227,17 @@ async def on_message(message: discord.Message):
                     name=f"Chat with {message.author.nick or message.author.display_name}",
                     message=message,
                 )
-                await thread.send(
-                    f"{message.author.mention}\n{response.choices[0].message.content}"
-                )
+                content = response.choices[0].message.content
+                # 2000 文字ごとに分割して送信
+                for i in range(0, len(content), 2000):
+                    if i == 0:
+                        await thread.send(
+                            f"{message.author.mention}\n{content[i : i + 2000]}"
+                        )
+                    else:
+                        await thread.send(content[i : i + 2000])
         return
+
     # message.content にURLとメンションと絵文字しかない場合は翻訳しない
     modified_text = re.sub(
         r"<.*?>|:.*?:|https?://[\w!?/\+\-_~=;\.,*&@#$%\(\)\'\[\]]+", "", message.content

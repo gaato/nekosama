@@ -217,7 +217,10 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
         return
     translated_text = await translate(after.content)
     embed = discord.Embed(description=translated_text)
-    m = await after.reply(embed=embed, mention_author=False)
+    response = translated_messages.get(before.id)
+    if response is None:
+        return
+    m = await response.edit(embed=embed)
     translated_messages[after.id] = m
 
 

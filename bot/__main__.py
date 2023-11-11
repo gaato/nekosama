@@ -3,11 +3,9 @@ import os
 import random
 import re
 import traceback
-import uuid
 from collections import OrderedDict
 from typing import Optional
 
-import aiohttp
 import discord
 import openai
 from discord.ext import commands, tasks
@@ -50,68 +48,23 @@ en_to_jp_cache = LimitedSizeDict(size_limit=100)
 translated_messages = LimitedSizeDict(size_limit=100)
 
 
-async def detect(text: str):
-    return translator.detect(text).lang, 200
-    # key = os.environ['TL_KEY']
-    # endpoint = 'https://api.cognitive.microsofttranslator.com'
-    # path = '/detect'
-    # constructed_url = endpoint + path
-    # region = 'japaneast'
-    # params = [('api-version', '3.0')]
-    # headers = {
-    #     'Ocp-Apim-Subscription-Key': key,
-    #     'Ocp-Apim-Subscription-Region': region,
-    #     'Content-type': 'application/json',
-    #     'X-ClientTraceId': str(uuid.uuid4())
-    # }
-    # body = [{'text': text}]
-
-    # async with aiohttp.ClientSession() as session:
-    #     async with session.post(url=constructed_url, params=params, headers=headers, json=body) as response:
-    #         if response.status != 200:
-    #             print(await response.text())
-    #             return None, response.status
-    #         res = await response.json()
-    #         return res[0]['language'], response.status
-
-
-async def translate(text, dest=["en", "ja"], src=None):
-    return translator.translate(text, dest=dest, src=src).text, 200
-    # key = os.environ['TL_KEY']
-    # endpoint = 'https://api.cognitive.microsofttranslator.com'
-    # path = '/translate'
-    # constructed_url = endpoint + path
-    # region = 'japaneast'
-    # params = [('api-version', '3.0')]
-    # if src is not None:
-    #     params.append(('from', src))
-    # if isinstance(dest, list):
-    #     for d in dest:
-    #         params.append(('to', d))
-    # else:
-    #     params.append(('to', dest))
-    # headers = {
-    #     'Ocp-Apim-Subscription-Key': key,
-    #     'Ocp-Apim-Subscription-Region': region,
-    #     'Content-type': 'application/json',
-    #     'X-ClientTraceId': str(uuid.uuid4())
-    # }
-    # body = [{'text': text}]
-
-    # async with aiohttp.ClientSession() as session:
-    #     async with session.post(url=constructed_url, params=params, headers=headers, json=body) as response:
-    #         if response.status != 200:
-    #             print(await response.text())
-    #             return None, response.status
-    #         res = await response.json()
-    #         if src is None:
-    #             match res[0]['detectedLanguage']['language']:
-    #                 case 'ja':
-    #                     return res[0]['translations'][0]['text'], response.status
-    #                 case 'en':
-    #                     return res[0]['translations'][1]['text'], response.status
-    #         else:
-    #             return res[0]['translations'][0]['text'], response.status
+async def translate(text: str):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-1106",
+        messages=[
+            {
+                "role": "system",
+                "content": "This is a direct translation task. "
+                "Translate the following text from Japanese to English or from English to Japanese. "
+                "Do not add any additional comments or language indicators.",
+            },
+            {
+                "role": "user",
+                "content": text,
+            },
+        ],
+    )
+    return response.choices[0].message.content
 
 
 class TranslateResponseView(discord.ui.View):
@@ -244,20 +197,8 @@ async def on_message(message: discord.Message):
     )
     if len(modified_text.strip()) == 0:
         return
-    detected_lang, status = await detect(message.content)
-    if status != 200:
-        return
-    if detected_lang in ("ja", "zh-Hans"):
-        color = 0x87CEEB
-        translated_text, status = await translate(message.content, src="ja", dest="en")
-    else:
-        color = 0x90EE90
-        translated_text, status = await translate(message.content, src="en", dest="ja")
-    if status != 200:
-        return
-    embed = discord.Embed(description=translated_text, color=color)
-    # view = TranslateResponseView()
-    # m = await message.reply(translated_text, mention_author=False, view=view)
+    translated_text = await translate(message.content)
+    embed = discord.Embed(description=translated_text)
     m = await message.reply(embed=embed, mention_author=False)
     translated_messages[message.id] = m
 
@@ -268,31 +209,16 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
         return
     if before.content == after.content:
         return
-    # after.content にURLとメンションと絵文字しかない場合は翻訳しない
+    # message.content にURLとメンションと絵文字しかない場合は翻訳しない
     modified_text = re.sub(
         r"<.*?>|:.*?:|https?://[\w!?/\+\-_~=;\.,*&@#$%\(\)\'\[\]]+", "", after.content
     )
     if len(modified_text.strip()) == 0:
         return
-    detected_lang, status = await detect(after.content)
-    if status != 200:
-        return
-    if detected_lang in ("ja", "zh-Hans"):
-        color = 0x87CEEB
-        translated_text, status = await translate(after.content, src="ja", dest="en")
-    else:
-        color = 0x90EE90
-        translated_text, status = await translate(after.content, src="en", dest="ja")
-    if status != 200:
-        return
-    response = translated_messages.get(before.id)
-    if response is None:
-        return
-    embed = discord.Embed(description=translated_text, color=color)
-    # view = TranslateResponseView()
-    # m = await response.edit(content=translated_text, view=view, embed=None)
-    m = await response.edit(embed=embed)
-    translated_messages[before.id] = m
+    translated_text = await translate(after.content)
+    embed = discord.Embed(description=translated_text)
+    m = await after.reply(embed=embed, mention_author=False)
+    translated_messages[after.id] = m
 
 
 @bot.event
@@ -382,32 +308,6 @@ async def edit(ctx: discord.ApplicationContext, message: discord.Message):
         await ctx.respond("You can only edit messages sent by me.", ephemeral=True)
         return
     await ctx.send_modal(EditModal(message))
-
-
-# @bot.message_command(name='JP -> EN')
-# async def jp_to_en(ctx: discord.ApplicationContext, message: discord.Message):
-#     if message.content in jp_to_en_cache:
-#         await ctx.respond(jp_to_en_cache[message.content], ephemeral=True)
-#         return
-#     translated_text, status = await translate(message.content, src='ja', dest='en')
-#     if status != 200:
-#         await ctx.respond(f'Error: {status}')
-#         return
-#     jp_to_en_cache[message.content] = translated_text
-#     await ctx.respond(translated_text, ephemeral=True)
-
-
-# @bot.message_command(name='EN -> JP')
-# async def en_to_jp(ctx: discord.ApplicationContext, message: discord.Message):
-#     if message.content in en_to_jp_cache:
-#         await ctx.respond(en_to_jp_cache[message.content], ephemeral=True)
-#         return
-#     translated_text, status = await translate(message.content, src='en', dest='ja')
-#     if status != 200:
-#         await ctx.respond(f'Error: {status}')
-#         return
-#     en_to_jp_cache[message.content] = translated_text
-#     await ctx.respond(translated_text, ephemeral=True)
 
 
 @bot.slash_command(

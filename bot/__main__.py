@@ -221,7 +221,7 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
     if response is None:
         return
     m = await response.edit(embed=embed)
-    translated_messages[after.id] = m
+    translated_messages[before.id] = m
 
 
 @bot.event

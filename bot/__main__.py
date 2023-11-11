@@ -198,7 +198,7 @@ async def on_message(message: discord.Message):
     if len(modified_text.strip()) == 0:
         return
     translated_text = await translate(message.content)
-    embed = discord.Embed(description=translated_text)
+    embed = discord.Embed(description=translated_text, color=0xBF65E8)
     m = await message.reply(embed=embed, mention_author=False)
     translated_messages[message.id] = m
 
@@ -216,7 +216,7 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
     if len(modified_text.strip()) == 0:
         return
     translated_text = await translate(after.content)
-    embed = discord.Embed(description=translated_text)
+    embed = discord.Embed(description=translated_text, color=0xBF65E8)
     response = translated_messages.get(before.id)
     if response is None:
         return

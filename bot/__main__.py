@@ -7,10 +7,9 @@ from collections import OrderedDict
 from typing import Optional
 
 import discord
-import openai
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
-from googletrans import Translator
+from openai import AsyncOpenAI
 
 from .config import guild_id, teams
 
@@ -20,11 +19,10 @@ intents.members = True
 intents.message_content = True
 bot = commands.Bot(intents=intents)
 
-translator = Translator()
+client = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
 
 guild: Optional[discord.Guild] = None
-
-openai.api_key = os.environ["OPENAI_API_KEY"]
 
 
 class LimitedSizeDict(OrderedDict):
@@ -49,7 +47,7 @@ translated_messages = LimitedSizeDict(size_limit=100)
 
 
 async def translate(text: str):
-    response = openai.ChatCompletion.create(
+    response = await client.chat.completions.create(
         model="gpt-3.5-turbo-1106",
         messages=[
             {
@@ -136,7 +134,7 @@ async def on_message(message: discord.Message):
             ).flatten()
             if history[0].type == discord.MessageType.thread_starter_message:
                 history[0] = history[0].reference.resolved
-            response = openai.ChatCompletion.create(
+            response = await client.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {
@@ -160,7 +158,7 @@ async def on_message(message: discord.Message):
     # メンションされたら ChatGPT で返信
     if bot.user in message.mentions:
         with message.channel.typing():
-            response = openai.ChatCompletion.create(
+            response = await client.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {

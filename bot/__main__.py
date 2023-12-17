@@ -25,6 +25,10 @@ client = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
 guild: Optional[discord.Guild] = None
 
 
+admin_only = discord.Permissions()
+admin_only.administrator = True
+
+
 class LimitedSizeDict(OrderedDict):
     def __init__(self, size_limit=None, *args, **kwds):
         self.size_limit = size_limit
@@ -109,11 +113,29 @@ class EditModal(discord.ui.Modal):
         await interaction.response.send_message("Edited!", ephemeral=True)
 
 
+class AgreeButtonView(discord.ui.View):
+    def __init__(self, **kwargs):
+        super().__init__(timeout=None, **kwargs)
+
+    @discord.ui.button(
+        label="Agree",
+        style=discord.ButtonStyle.primary,
+        custom_id="agree",
+    )
+    async def agree_button(
+        self, button: discord.ui.Button, interaction: discord.Interaction
+    ):
+        role = interaction.guild.get_role(int(os.environ["MEMBER_ROLE_ID"]))
+        await interaction.user.add_roles(role)
+        await interaction.response.send_message("Verified!", ephemeral=True)
+
+
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     print("------")
     bot.add_view(TranslateResponseView())
+    bot.add_view(AgreeButtonView())
     global guild
     guild = bot.get_guild(guild_id)
     fetch_events.start()
@@ -233,6 +255,18 @@ async def on_message_delete(message: discord.Message):
 @bot.slash_command()
 async def ping(ctx):
     await ctx.respond(f"Pong! ({bot.latency*1000}ms)")
+
+
+@bot.slash_command(
+    name="send-agree-button",
+    default_member_permssions=admin_only,
+)
+async def send_agree_button(ctx: discord.ApplicationContext):
+    await ctx.send(
+        content="Please press the button below if you agree.\n同意する場合は以下のボタンを押してください。",
+        view=AgreeButtonView(),
+    )
+    await ctx.respond("Sent!", ephemeral=True)
 
 
 role = bot.create_group("role", description="Role commands")

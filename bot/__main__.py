@@ -211,11 +211,11 @@ async def on_message(message: discord.Message):
                         await thread.send(content[i : i + 2000])
         return
 
-    # チャンネルトピックに ignore が含まれていたら無視
+    # チャンネルトピックに notl が含まれていたら無視
     if (
         isinstance(message.channel, discord.TextChannel)
         and message.channel.topic is not None
-        and "ignore" in message.channel.topic
+        and "notl" in message.channel.topic
     ):
         return
     # message.content にURLとメンションと絵文字しかない場合は翻訳しない

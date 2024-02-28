@@ -145,71 +145,71 @@ async def on_ready():
 async def on_message(message: discord.Message):
     if message.author.bot:
         return
-    # 自分が作ったスレッドではメンションされなくても ChatGPT で返信
-    if (
-        isinstance(message.channel, discord.Thread)
-        and message.channel.owner == bot.user
-    ):
-        with message.channel.typing():
-            history = await message.channel.history(
-                limit=10, oldest_first=True
-            ).flatten()
-            if history[0].type == discord.MessageType.thread_starter_message:
-                history[0] = history[0].reference.resolved
-            response = await client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "Since this is a Discord, you can use Markdown.",
-                    }
-                ]
-                + [
-                    {
-                        "role": "assistant" if m.author == bot.user else "user",
-                        "content": re.sub(r"<@!?[0-9]+>", "", m.content),
-                    }
-                    for m in history
-                ],
-            )
-            content = response.choices[0].message.content
-            # 2000 文字ごとに分割して送信
-            for i in range(0, len(content), 2000):
-                await message.reply(content[i : i + 2000])
-        return
-    # メンションされたら ChatGPT で返信
-    if bot.user in message.mentions:
-        with message.channel.typing():
-            response = await client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": message.content.replace(
-                            f"<@!{bot.user.id}>", ""
-                        ).strip(),
-                    },
-                ],
-            )
-            if isinstance(message.channel, discord.Thread):
-                await message.channel.send(
-                    f"{message.author.mention}\n{response.choices[0].message.content}",
-                )
-            else:
-                thread = await message.channel.create_thread(
-                    name=f"Chat with {message.author.nick or message.author.display_name}",
-                    message=message,
-                )
-                content = response.choices[0].message.content
-                # 2000 文字ごとに分割して送信
-                for i in range(0, len(content), 2000):
-                    if i == 0:
-                        await thread.send(
-                            f"{message.author.mention}\n{content[i : i + 2000]}"
-                        )
-                    else:
-                        await thread.send(content[i : i + 2000])
-        return
+    # # 自分が作ったスレッドではメンションされなくても ChatGPT で返信
+    # if (
+    #     isinstance(message.channel, discord.Thread)
+    #     and message.channel.owner == bot.user
+    # ):
+    #     with message.channel.typing():
+    #         history = await message.channel.history(
+    #             limit=10, oldest_first=True
+    #         ).flatten()
+    #         if history[0].type == discord.MessageType.thread_starter_message:
+    #             history[0] = history[0].reference.resolved
+    #         response = await client.chat.completions.create(
+    #             model="gpt-4",
+    #             messages=[
+    #                 {
+    #                     "role": "system",
+    #                     "content": "Since this is a Discord, you can use Markdown.",
+    #                 }
+    #             ]
+    #             + [
+    #                 {
+    #                     "role": "assistant" if m.author == bot.user else "user",
+    #                     "content": re.sub(r"<@!?[0-9]+>", "", m.content),
+    #                 }
+    #                 for m in history
+    #             ],
+    #         )
+    #         content = response.choices[0].message.content
+    #         # 2000 文字ごとに分割して送信
+    #         for i in range(0, len(content), 2000):
+    #             await message.reply(content[i : i + 2000])
+    #     return
+    # # メンションされたら ChatGPT で返信
+    # if bot.user in message.mentions:
+    #     with message.channel.typing():
+    #         response = await client.chat.completions.create(
+    #             model="gpt-4",
+    #             messages=[
+    #                 {
+    #                     "role": "user",
+    #                     "content": message.content.replace(
+    #                         f"<@!{bot.user.id}>", ""
+    #                     ).strip(),
+    #                 },
+    #             ],
+    #         )
+    #         if isinstance(message.channel, discord.Thread):
+    #             await message.channel.send(
+    #                 f"{message.author.mention}\n{response.choices[0].message.content}",
+    #             )
+    #         else:
+    #             thread = await message.channel.create_thread(
+    #                 name=f"Chat with {message.author.nick or message.author.display_name}",
+    #                 message=message,
+    #             )
+    #             content = response.choices[0].message.content
+    #             # 2000 文字ごとに分割して送信
+    #             for i in range(0, len(content), 2000):
+    #                 if i == 0:
+    #                     await thread.send(
+    #                         f"{message.author.mention}\n{content[i : i + 2000]}"
+    #                     )
+    #                 else:
+    #                     await thread.send(content[i : i + 2000])
+    #     return
 
     # チャンネルトピックに notl が含まれていたら無視
     if (
@@ -432,7 +432,9 @@ async def unixtimestamp(
             discord.OptionChoice(
                 "Long Date/Time (ex: Saturday, April 6, 2019 8:57 PM)",
                 "F",
-                name_localizations={"ja": "Long Date/Time (ex: 2019年4月6日 土曜日 20:57)"},
+                name_localizations={
+                    "ja": "Long Date/Time (ex: 2019年4月6日 土曜日 20:57)"
+                },
             ),
             discord.OptionChoice(
                 "Relative Time (ex: 4 years ago)",

@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  nekosama:
+    build: discord
+    env_file: .nekosama.env
+  hawk:
+    build: discord
+    env_file: .hawk.env

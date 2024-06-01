@@ -1,17 +1,14 @@
-import datetime
 import os
 import random
 import re
-import traceback
 from collections import OrderedDict
 from typing import Optional
 
-import discord
-from discord.ext import commands, tasks
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
-from .config import guild_id, teams
+import discord
+from discord.ext import commands
 
 load_dotenv()
 intents = discord.Intents.default()
@@ -52,7 +49,7 @@ translated_messages = LimitedSizeDict(size_limit=100)
 
 async def translate(text: str):
     response = await client.chat.completions.create(
-        model="gpt-3.5-turbo-1106",
+        model="gpt-3.5-turbo",
         messages=[
             {
                 "role": "system",
@@ -137,8 +134,6 @@ async def on_ready():
     bot.add_view(TranslateResponseView())
     bot.add_view(AgreeButtonView())
     global guild
-    guild = bot.get_guild(guild_id)
-    fetch_events.start()
 
 
 @bot.event
@@ -152,12 +147,12 @@ async def on_message(message: discord.Message):
     ):
         with message.channel.typing():
             history = await message.channel.history(
-                limit=10, oldest_first=True
+                limit=30, oldest_first=True
             ).flatten()
             if history[0].type == discord.MessageType.thread_starter_message:
                 history[0] = history[0].reference.resolved
             response = await client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o",
                 messages=[
                     {
                         "role": "system",
@@ -350,138 +345,6 @@ async def edit(ctx: discord.ApplicationContext, message: discord.Message):
         await ctx.respond("You can only edit messages sent by me.", ephemeral=True)
         return
     await ctx.send_modal(EditModal(message))
-
-
-@bot.slash_command(
-    name="unixtimestamp",
-    description="Convert datetime to unix timestamp format.",
-    description_localizations={
-        "ja": "日時をUNIXタイムスタンプに変換します。",
-    },
-)
-async def unixtimestamp(
-    ctx: discord.ApplicationContext,
-    dt: discord.Option(
-        name="datetime",
-        input_type=str,
-        description="The format must be `yyyymmdd-HHMMSS`. (ex: 20190406-205700)",
-        description_localizations={
-            "ja": "書式は`yyyymmdd-HHMMSS`です。 (例: 20190406-205700)",
-        },
-        required=True,
-    ),
-    timezone: discord.Option(
-        input_type=str,
-        description="the timezone of the entered date and time.",
-        description_localizations={
-            "ja": "入力した日時のタイムゾーン。",
-        },
-        choices=[
-            discord.OptionChoice("UTC", "+0000"),
-            discord.OptionChoice("JST (UTC+9)", "+0900"),
-            discord.OptionChoice("PST (UTC-8)", "-0800"),
-            discord.OptionChoice("MST (UTC-7)", "-0700"),
-            discord.OptionChoice("CST (UTC-6)", "-0600"),
-            discord.OptionChoice("EST (UTC-5)", "-0500"),
-            discord.OptionChoice("CET・BST (UTC+1)", "+0100"),
-            discord.OptionChoice("EET・CEST (UTC+2)", "+0200"),
-            discord.OptionChoice("MSK・EEST (UTC+3)", "+0300"),
-            discord.OptionChoice("IST (UTC+5.5)", "+0530"),
-            discord.OptionChoice("WIB (UTC+7)", "+0700"),
-            discord.OptionChoice("WITA・AWST (UTC+8)", "+0800"),
-            discord.OptionChoice("KST・AWDT (UTC+9)", "+0900"),
-            discord.OptionChoice("AEST (UTC+10)", "+1000"),
-            discord.OptionChoice("AEDT (UTC+11)", "+1100"),
-            discord.OptionChoice("NZST (UTC+12)", "+1200"),
-            discord.OptionChoice("NZDT (UTC+13)", "+1300"),
-        ],
-        required=True,
-    ),
-    style: discord.Option(
-        input_type=str,
-        description="the style of the timestamp.",
-        description_localizations={
-            "ja": "タイムスタンプの表示形式。",
-        },
-        choices=[
-            discord.OptionChoice(
-                "Short Time (ex: 8:57 PM)",
-                "t",
-                name_localizations={"ja": "Short Time (ex: 20:57)"},
-            ),
-            discord.OptionChoice(
-                "Long Time (ex: 8:57:00 PM)",
-                "T",
-                name_localizations={"ja": "Long Time (ex: 20:57:00)"},
-            ),
-            discord.OptionChoice(
-                "Short Date (ex: 4/6/2019)",
-                "d",
-                name_localizations={"ja": "Short Date (ex: 2019/4/6)"},
-            ),
-            discord.OptionChoice(
-                "Long Date (ex: April 6, 2019)",
-                "D",
-                name_localizations={"ja": "Long Date (ex: 2019年4月6日)"},
-            ),
-            discord.OptionChoice(
-                "Short Date/Time (ex: April 6, 2019 8:57 PM)",
-                "f",
-                name_localizations={"ja": "Short Date/Time (ex: 2019/4/6 20:57)"},
-            ),
-            discord.OptionChoice(
-                "Long Date/Time (ex: Saturday, April 6, 2019 8:57 PM)",
-                "F",
-                name_localizations={"ja": "Long Date/Time (ex: 2019年4月6日 土曜日 20:57)"},
-            ),
-            discord.OptionChoice(
-                "Relative Time (ex: 4 years ago)",
-                "R",
-                name_localizations={"ja": "Relative Time (ex: 4年前)"},
-            ),
-        ],
-    ),
-):
-    try:
-        dt_obj = datetime.datetime.strptime(dt + timezone, "%Y%m%d-%H%M%S%z")
-    except ValueError as e:
-        print(e)
-        await ctx.respond(
-            "The format must be `yyyymmdd-HHMMSS`. (ex: 20190406-2057)", ephemeral=True
-        )
-    timestamp = f"<t:{int(dt_obj.timestamp())}:{style}>"
-    embed = discord.Embed(color=0xB190FC)
-    embed.add_field(name="Input (with timezone)", value=f"```\n{dt}{timezone}\n```")
-    embed.add_field(name="Unix Timestamp", value=f"```\n{timestamp}\n```")
-    await ctx.respond(timestamp, embed=embed)
-
-
-@tasks.loop(minutes=1)
-async def fetch_events():
-    events = await guild.fetch_scheduled_events()
-    upcomming_events = filter(
-        lambda e: datetime.datetime.now(datetime.timezone.utc)
-        + datetime.timedelta(minutes=4)
-        < e.start_time
-        < datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5),
-        await guild.fetch_scheduled_events(),
-    )
-    for event in upcomming_events:
-        if (
-            datetime.timedelta(minutes=4)
-            < event.start_time - datetime.datetime.now(datetime.timezone.utc)
-            < datetime.timedelta(minutes=5)
-        ):
-            if ids := teams.get(event.location.value.id):
-                role = guild.get_role(ids[0]) if ids[0] else None
-                channel = guild.get_channel(ids[1])
-                await channel.send(
-                    f'{role.mention if role else "@everyone"}\n__**{event.name}**__ が {event.location.value.jump_url} で __**5 分後**__に始まります！\n{event.url}'
-                )
-                try:
-                    await event.start()
-                except Exception:
-                    traceback.print_exc()
 
 
 bot.run(os.environ["DISCORD_TOKEN"])

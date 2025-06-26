@@ -4,13 +4,11 @@ import re
 from collections import OrderedDict
 from typing import Optional
 
-from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
 import discord
 from discord.ext import commands
 
-load_dotenv()
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True

@@ -1,9 +1,11 @@
-version: '3.8'
-
 services:
   nekosama:
-    build: discord
+    build:
+      context: .
+      dockerfile: Dockerfile
     env_file: .nekosama.env
   hawk:
-    build: discord
+    build:
+      context: .
+      dockerfile: Dockerfile
     env_file: .hawk.env

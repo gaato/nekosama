@@ -3,9 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    restart: unless-stopped
     env_file: .nekosama.env
   hawk:
     build:
       context: .
       dockerfile: Dockerfile
+    restart: unless-stopped
     env_file: .hawk.env

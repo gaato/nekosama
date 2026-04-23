@@ -8,3 +8,9 @@ dependencies = [
     "openai>=1.91.0",
     "py-cord>=2.6.1",
 ]
+
+[project.scripts]
+nekosama = "main:main"
+
+[tool.uv]
+dev-dependencies = []

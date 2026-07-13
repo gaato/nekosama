@@ -128,8 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Config file
-config.py
+# Legacy root-level config file
+/config.py
 
 *.env
 # nekosama runtime data

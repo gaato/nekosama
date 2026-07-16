@@ -86,27 +86,25 @@ fn channel_disables_translation(channel : @model.Channel) -> Bool {
 }
 
 ///|
-async fn Runtime::translation_disabled(
+async fn Runtime::channel(
   self : Runtime,
   ctx : @discord.GatewayCtx,
   channel_id : @model.ChannelId,
-) -> Bool {
+) -> @model.Channel {
   match self.cache.channel(channel_id) {
-    Some(channel) => channel_disables_translation(channel)
-    None => channel_disables_translation(ctx.channel_ref(channel_id).fetch())
+    Some(channel) => channel
+    None => ctx.channel_ref(channel_id).fetch()
   }
 }
 
 ///|
-async fn Runtime::handle_message_create(
+async fn Runtime::handle_translation(
   self : Runtime,
   ctx : @discord.GatewayCtx,
   event : @model.MessageCreateEvent,
+  channel : @model.Channel,
 ) -> Unit {
-  if event.message.author.bot.unwrap_or(false) {
-    return
-  }
-  if self.translation_disabled(ctx, event.message.channel_id) {
+  if channel_disables_translation(channel) {
     return
   }
   if is_blank(translation_probe(event.message.content)) {
@@ -126,13 +124,47 @@ async fn Runtime::handle_message_create(
 }
 
 ///|
-pub fn register_translation_events(
-  bot : @discord.Bot,
-  runtime : Runtime,
+async fn Runtime::handle_message_update(
+  self : Runtime,
+  ctx : @discord.GatewayCtx,
+  event : @model.MessageUpdateEvent,
 ) -> Unit {
-  bot.on(@discord.Events::message_create(), (ctx, event) => {
-    runtime.handle_message_create(ctx, event)
+  if event.message.author.bot.unwrap_or(false) {
+    return
+  }
+  guard self.translations.get(event.message.id) is Some(record) else { return }
+  if !should_retranslate(record, event.message.content) {
+    return
+  }
+  let translated = self.translate(event.message.content)
+  let reply = ctx
+    .app()
+    .http()
+    .message_ref(event.message.channel_id, record.reply_message_id)
+    .edit(embeds=[translation_embed(translated)])
+  self.translations.set(event.message.id, {
+    original_content: event.message.content,
+    reply_message_id: reply.id,
   })
+}
+
+///|
+fn should_retranslate(record : TranslationRecord, content : String) -> Bool {
+  record.original_content != content && !is_blank(translation_probe(content))
+}
+
+///|
+async fn Runtime::handle_message_delete(
+  self : Runtime,
+  ctx : @discord.GatewayCtx,
+  event : @model.MessageDeleteEvent,
+) -> Unit {
+  guard self.translations.remove(event.id) is Some(record) else { return }
+  ctx
+  .app()
+  .http()
+  .message_ref(event.channel_id, record.reply_message_id)
+  .delete()
 }
 
 ///|

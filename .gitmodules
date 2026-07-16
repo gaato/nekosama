@@ -1,0 +1,3 @@
+[submodule "deps/discord.mbt"]
+	path = deps/discord.mbt
+	url = https://github.com/gaato/discord.mbt

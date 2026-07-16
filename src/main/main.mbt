@@ -54,12 +54,19 @@ async fn main {
   @signal.set_global_cancellation_signals([SIGINT, SIGTERM])
   try {
     let token = @env.get_env_var("DISCORD_TOKEN").unwrap_or("")
+    let runtime = @nekosama.Runtime(
+      @env.get_env_var("OPENAI_API_KEY").unwrap_or(""),
+    )
     let app = @discord.App(sync=command_sync())
     app.command(ping_command())
     @nekosama.register_commands(app)
+    @nekosama.register_translation_commands(app, runtime)
     let bot = @discord.Bot(app, token~, intents=bot_intents())
+    runtime.attach_cache(bot)
+    @nekosama.register_translation_events(bot, runtime)
     bot.on(@discord.Events::ready(), (ctx, ready) => {
       gateway_ctx.val = Some(ctx)
+      runtime.set_bot_user_id(ready.user.id)
       println("[bot] ready as \{ready.user.username}")
     })
     bot.run()

@@ -1,0 +1,35 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "gaato/nekosama/openai"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn chat_request_json(String, Array[ChatMessage]) -> Json
+
+pub fn parse_chat_response(String) -> String raise
+
+// Errors
+pub suberror OpenAIError {
+  Http(status~ : Int, body~ : String)
+  InvalidResponse(String)
+} derive(@debug.Debug)
+
+// Types and methods
+pub(all) struct ChatMessage {
+  role : String
+  content : String
+} derive(Eq, @debug.Debug)
+
+pub struct Client {
+  api_key : String
+  base_url : String
+}
+pub fn Client::Client(String, base_url? : String) -> Self
+pub async fn Client::chat_completion(Self, String, Array[ChatMessage]) -> String
+
+// Type aliases
+
+// Traits
+

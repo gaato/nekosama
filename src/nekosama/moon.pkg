@@ -1,6 +1,8 @@
 import {
   "gaato/discord",
+  "gaato/discord/cache",
   "gaato/discord/model",
+  "gaato/nekosama/openai",
   "moonbitlang/core/env",
   "moonbitlang/core/random",
 }

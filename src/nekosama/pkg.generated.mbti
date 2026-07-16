@@ -3,14 +3,55 @@ package "gaato/nekosama/nekosama"
 
 import {
   "gaato/discord/app",
+  "gaato/discord/bot",
+  "gaato/discord/cache",
+  "gaato/discord/model",
+  "gaato/nekosama/openai",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/ref",
 }
 
 // Values
+pub fn is_blank(String) -> Bool
+
 pub fn register_commands(@app.App) -> Unit
+
+pub fn register_translation_commands(@app.App, Runtime) -> Unit
+
+pub fn register_translation_events(@bot.Bot, Runtime) -> Unit
+
+pub fn split_codepoints(String, limit? : Int) -> Array[String]
+
+pub fn translation_probe(String) -> String
 
 // Errors
 
 // Types and methods
+pub struct LimitedSizeMap[K, V] {
+  capacity : Int
+  values : Map[K, V]
+  order : Array[K]
+}
+pub fn[K : Eq + Hash, V] LimitedSizeMap::LimitedSizeMap(Int) -> Self[K, V]
+pub fn[K : Eq + Hash, V] LimitedSizeMap::get(Self[K, V], K) -> V?
+pub fn[K, V] LimitedSizeMap::length(Self[K, V]) -> Int
+pub fn[K : Eq + Hash, V] LimitedSizeMap::remove(Self[K, V], K) -> V?
+pub fn[K : Eq + Hash, V] LimitedSizeMap::set(Self[K, V], K, V) -> Unit
+
+pub struct Runtime {
+  openai : @openai.Client
+  cache : @cache.InMemoryCache
+  translations : LimitedSizeMap[@model.Id[@model.MessageMarker], TranslationRecord]
+  bot_user_id : @ref.Ref[@model.Id[@model.UserMarker]?]
+}
+pub fn Runtime::Runtime(String) -> Self
+pub fn Runtime::attach_cache(Self, @bot.Bot) -> Unit
+pub fn Runtime::set_bot_user_id(Self, @model.Id[@model.UserMarker]) -> Unit
+
+pub(all) struct TranslationRecord {
+  original_content : String
+  reply_message_id : @model.Id[@model.MessageMarker]
+} derive(@debug.Debug)
 
 // Type aliases
 

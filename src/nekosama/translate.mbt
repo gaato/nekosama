@@ -1,0 +1,311 @@
+///|
+const TRANSLATION_MODEL : String = "gpt-4.1-nano"
+
+///|
+const TRANSLATION_COLOR : Int = 0xBF65E8
+
+///|
+const EDIT_MODAL_ID : String = "edit-translation"
+
+///|
+const TRANSLATION_PROMPT : String = "This is a direct translation task. " +
+  "Translate the following text from Japanese to English or from English to Japanese. " +
+  "Do not add any additional comments or language indicators."
+
+///|
+pub struct Runtime {
+  openai : @openai.Client
+  cache : @cache.InMemoryCache
+  translations : LimitedSizeMap[@model.MessageId, TranslationRecord]
+  bot_user_id : Ref[@model.UserId?]
+}
+
+///|
+pub fn Runtime::Runtime(openai_api_key : String) -> Runtime {
+  {
+    openai: @openai.Client(openai_api_key),
+    cache: @cache.InMemoryCache(resources=@cache.CacheResources::default()),
+    translations: LimitedSizeMap(100),
+    bot_user_id: Ref(None),
+  }
+}
+
+///|
+pub fn Runtime::attach_cache(self : Runtime, bot : @discord.Bot) -> Unit {
+  bot.attach_cache(self.cache)
+}
+
+///|
+pub fn Runtime::set_bot_user_id(
+  self : Runtime,
+  bot_user_id : @model.UserId,
+) -> Unit {
+  self.bot_user_id.val = Some(bot_user_id)
+}
+
+///|
+fn Runtime::is_own_message(self : Runtime, message : @model.Message) -> Bool {
+  match self.bot_user_id.val {
+    Some(bot_user_id) => message.author.id == bot_user_id
+    None => false
+  }
+}
+
+///|
+async fn Runtime::translate(self : Runtime, content : String) -> String {
+  self.openai.chat_completion(TRANSLATION_MODEL, [
+    { role: "system", content: TRANSLATION_PROMPT },
+    { role: "user", content },
+  ])
+}
+
+///|
+fn translation_embed(description : String) -> @model.Embed {
+  {
+    title: None,
+    typ: None,
+    url: None,
+    description: Some(description),
+    timestamp: None,
+    color: Some(TRANSLATION_COLOR),
+    footer: None,
+    image: None,
+    thumbnail: None,
+    video: None,
+    provider: None,
+    author: None,
+    fields: None,
+    flags: None,
+  }
+}
+
+///|
+fn channel_disables_translation(channel : @model.Channel) -> Bool {
+  channel.typ == GuildText &&
+  nullable_string(channel.topic).map_or(false, topic => topic.contains("notl"))
+}
+
+///|
+async fn Runtime::translation_disabled(
+  self : Runtime,
+  ctx : @discord.GatewayCtx,
+  channel_id : @model.ChannelId,
+) -> Bool {
+  match self.cache.channel(channel_id) {
+    Some(channel) => channel_disables_translation(channel)
+    None => channel_disables_translation(ctx.channel_ref(channel_id).fetch())
+  }
+}
+
+///|
+async fn Runtime::handle_message_create(
+  self : Runtime,
+  ctx : @discord.GatewayCtx,
+  event : @model.MessageCreateEvent,
+) -> Unit {
+  if event.message.author.bot.unwrap_or(false) {
+    return
+  }
+  if self.translation_disabled(ctx, event.message.channel_id) {
+    return
+  }
+  if is_blank(translation_probe(event.message.content)) {
+    return
+  }
+  let translated = self.translate(event.message.content)
+  let reply = ctx
+    .message_ref(event)
+    .reply(
+      embeds=[translation_embed(translated)],
+      allowed_mentions=@model.AllowedMentions::none(),
+    )
+  self.translations.set(event.message.id, {
+    original_content: event.message.content,
+    reply_message_id: reply.id,
+  })
+}
+
+///|
+pub fn register_translation_events(
+  bot : @discord.Bot,
+  runtime : Runtime,
+) -> Unit {
+  bot.on(@discord.Events::message_create(), (ctx, event) => {
+    runtime.handle_message_create(ctx, event)
+  })
+}
+
+///|
+priv struct EditForm {
+  translation : String
+}
+
+///|
+fn edit_modal() -> @discord.Modal[EditForm] {
+  @discord.modal(
+    custom_id=EDIT_MODAL_ID,
+    title="Edit",
+    fields=@discord.ModalFields::map1(
+      @discord.text_field(
+        custom_id="translation",
+        label="Edit translation",
+        style=Paragraph,
+        max_length=4096,
+      ),
+      translation => { translation, },
+    ),
+  )
+}
+
+///|
+fn raw_target_message(raw : @discord.CommandCtx) -> @model.Message? {
+  match (raw.data.target_id, raw.data.resolved) {
+    (Some(target_id), Some(resolved)) =>
+      match resolved.messages {
+        Some(messages) => messages.get(target_id.to_string())
+        None => None
+      }
+    _ => None
+  }
+}
+
+///|
+fn delete_command(runtime : Runtime) -> @discord.Command[@model.Message] {
+  @discord.message_command(
+    name="Delete",
+    handler=Immediate((ctx, message) => {
+      guard runtime.is_own_message(message) else {
+        return @discord.CommandReply::message(
+          content="You can only delete messages sent by me.",
+          ephemeral=true,
+        )
+      }
+      ctx.app().http().ref_of_message(message).delete()
+      @discord.CommandReply::message(content="Deleted!", ephemeral=true)
+    }),
+  )
+}
+
+///|
+fn edit_command(runtime : Runtime) -> @discord.Command[@model.Message] {
+  @discord.message_command(
+    name="Edit",
+    handler=Raw(raw => {
+      guard raw_target_message(raw) is Some(message) else {
+        raw.respond(
+          content="The selected message is unavailable.",
+          ephemeral=true,
+        )
+        return
+      }
+      guard runtime.is_own_message(message) else {
+        raw.respond(
+          content="You can only edit messages sent by me.",
+          ephemeral=true,
+        )
+        return
+      }
+      guard !message.embeds.is_empty() &&
+        message.embeds[0].description is Some(description) else {
+        raw.respond(
+          content="That message has no editable translation.",
+          ephemeral=true,
+        )
+        return
+      }
+      raw.show_modal(
+        custom_id="\{EDIT_MODAL_ID}:\{message.channel_id}/\{message.id}",
+        title="Edit",
+        components=[
+          @discord.label(
+            label="Edit translation",
+            component=@discord.text_input(
+              custom_id="translation",
+              style=Paragraph,
+              max_length=4096,
+              value=description,
+            ),
+          ),
+        ],
+      )
+    }),
+  )
+}
+
+///|
+fn parse_message_location(
+  state : String,
+) -> (@model.ChannelId, @model.MessageId)? {
+  let parts = state.split("/").to_array()
+  guard parts.length() == 2 else { return None }
+  let channel_id : @model.ChannelId = @model.Id::parse(parts[0]) catch {
+    _ => return None
+  }
+  let message_id : @model.MessageId = @model.Id::parse(parts[1]) catch {
+    _ => return None
+  }
+  Some((channel_id, message_id))
+}
+
+///|
+fn interaction_display_name(ctx : @discord.ModalImmediateCtx) -> String {
+  match ctx.interaction().guild_member {
+    Some(guild_member) => member_display_name(guild_member)
+    None =>
+      nullable_string(ctx.user().global_name).unwrap_or(ctx.user().username)
+  }
+}
+
+///|
+fn register_edit_modal(app : @discord.App, runtime : Runtime) -> Unit {
+  app.on_modal(
+    edit_modal(),
+    Immediate((ctx, form) => {
+      let location = match ctx.state() {
+        Some(state) => parse_message_location(state)
+        None => None
+      }
+      guard location is Some((channel_id, message_id)) else {
+        return @discord.InitialResponse::message(
+          content="The edited message is unavailable.",
+          ephemeral=true,
+        )
+      }
+      let message_ref = ctx.app().http().message_ref(channel_id, message_id)
+      let message = message_ref.fetch()
+      guard runtime.is_own_message(message) else {
+        return @discord.InitialResponse::message(
+          content="You can only edit messages sent by me.",
+          ephemeral=true,
+        )
+      }
+      guard !message.embeds.is_empty() else {
+        return @discord.InitialResponse::message(
+          content="That message has no editable translation.",
+          ephemeral=true,
+        )
+      }
+      let embed = {
+        ..message.embeds[0],
+        description: Some(form.translation),
+        footer: Some({
+          text: "Edited by \{interaction_display_name(ctx)}",
+          icon_url: None,
+          proxy_icon_url: None,
+        }),
+      }
+      message_ref.edit(embeds=[embed]) |> ignore
+      @discord.InitialResponse::message(content="Edited!", ephemeral=true)
+    }),
+  )
+}
+
+///|
+pub fn register_translation_commands(
+  app : @discord.App,
+  runtime : Runtime,
+) -> Unit {
+  app.command(delete_command(runtime))
+  app.command(edit_command(runtime))
+  register_edit_modal(app, runtime)
+}

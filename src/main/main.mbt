@@ -56,6 +56,7 @@ async fn main {
     let token = @env.get_env_var("DISCORD_TOKEN").unwrap_or("")
     let app = @discord.App(sync=command_sync())
     app.command(ping_command())
+    @nekosama.register_commands(app)
     let bot = @discord.Bot(app, token~, intents=bot_intents())
     bot.on(@discord.Events::ready(), (ctx, ready) => {
       gateway_ctx.val = Some(ctx)

@@ -1,0 +1,328 @@
+///|
+const MESSAGE_LIMIT : Int = 1900
+
+///|
+const EMBED_DESCRIPTION_LIMIT : Int = 3900
+
+///|
+priv struct RoleMembersArgs {
+  role1 : @model.RoleId
+  role2 : @model.RoleId?
+  role3 : @model.RoleId?
+}
+
+///|
+fn selected_roles(args : RoleMembersArgs) -> Array[@model.RoleId] {
+  let roles = [args.role1]
+  if args.role2 is Some(role) {
+    roles.push(role)
+  }
+  if args.role3 is Some(role) {
+    roles.push(role)
+  }
+  roles
+}
+
+///|
+fn contains_all_roles(
+  member_roles : Array[@model.RoleId],
+  required_roles : Array[@model.RoleId],
+) -> Bool {
+  for role in required_roles {
+    if !member_roles.contains(role) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+async fn matching_members(
+  client : @discord.Client,
+  guild_id : @model.GuildId,
+  required_roles : Array[@model.RoleId],
+) -> Array[@model.GuildMember] {
+  let matching : Array[@model.GuildMember] = []
+  let members = client.guild_ref(guild_id).members(page_size=1000)
+  members.each(guild_member => {
+    if contains_all_roles(guild_member.roles, required_roles) {
+      matching.push(guild_member)
+    }
+  })
+  matching
+}
+
+///|
+fn nullable_string(value : @model.Nullable[String]?) -> String? {
+  match value {
+    Some(nullable) => nullable.to_option()
+    None => None
+  }
+}
+
+///|
+fn member_display_name(guild_member : @model.GuildMember) -> String {
+  if nullable_string(guild_member.nick) is Some(nick) {
+    return nick
+  }
+  match guild_member.user {
+    Some(user) => nullable_string(user.global_name).unwrap_or(user.username)
+    None => "Unknown member"
+  }
+}
+
+///|
+fn member_line(guild_member : @model.GuildMember) -> String {
+  match guild_member.user {
+    Some(user) => "- \{member_display_name(guild_member)} (<@\{user.id}>)"
+    None => "- \{member_display_name(guild_member)}"
+  }
+}
+
+///|
+fn summarize_lines(lines : Array[String], limit : Int) -> String {
+  if lines.is_empty() {
+    return ""
+  }
+  let output = StringBuilder()
+  let mut included = 0
+  let mut output_length = 0
+  for line in lines {
+    let separator_length = if included == 0 { 0 } else { 1 }
+    if output_length + separator_length + line.length() > limit {
+      break
+    }
+    if included > 0 {
+      output.write_string("\n")
+    }
+    output.write_string(line)
+    output_length += separator_length + line.length()
+    included += 1
+  }
+  let omitted = lines.length() - included
+  if omitted > 0 {
+    let suffix = "\n… and \{omitted} more"
+    if output_length + suffix.length() <= limit {
+      output.write_string(suffix)
+    }
+  }
+  output.to_string()
+}
+
+///|
+fn role_mentions(roles : Array[@model.RoleId]) -> String {
+  roles.map(role => "<@&\{role}>").join(", ")
+}
+
+///|
+fn make_embed(
+  title : String,
+  description? : String,
+  color? : Int,
+  fields? : Array[@model.EmbedField],
+) -> @model.Embed {
+  {
+    title: Some(title),
+    typ: None,
+    url: None,
+    description,
+    timestamp: None,
+    color,
+    footer: None,
+    image: None,
+    thumbnail: None,
+    video: None,
+    provider: None,
+    author: None,
+    fields,
+    flags: None,
+  }
+}
+
+///|
+fn role_list_command() -> @discord.SlashChild {
+  @discord.subcommand(
+    name="list",
+    description="Show all roles.",
+    args=@discord.Args::unit(),
+    handler=Deferred(ephemeral=false, (ctx, _) => {
+      guard ctx.guild_id() is Some(guild_id) else {
+        ctx.edit_original(content="This command can only be used in a server.")
+        |> ignore
+        return
+      }
+      let roles = ctx.app().http().guild_ref(guild_id).roles()
+      let description = summarize_lines(
+        roles.map(role => "<@&\{role.id}>"),
+        EMBED_DESCRIPTION_LIMIT,
+      )
+      let description = if description.is_empty() {
+        "No roles found."
+      } else {
+        description
+      }
+      ctx.edit_original(embeds=[make_embed("Role list", description~)])
+      |> ignore
+    }),
+  )
+}
+
+///|
+fn role_members_command() -> @discord.SlashChild {
+  @discord.subcommand(
+    name="members",
+    description="Show members who have all selected roles.",
+    args=@discord.Args::map3(
+      @discord.arg_role(name="role1", description="Required role"),
+      @discord.arg_role(name="role2", description="Second required role").optional(),
+      @discord.arg_role(name="role3", description="Third required role").optional(),
+      (role1, role2, role3) => { role1, role2, role3 },
+    ),
+    handler=Deferred(ephemeral=false, (ctx, args) => {
+      guard ctx.guild_id() is Some(guild_id) else {
+        ctx.edit_original(content="This command can only be used in a server.")
+        |> ignore
+        return
+      }
+      let roles = selected_roles(args)
+      let members = matching_members(ctx.app().http(), guild_id, roles)
+      let member_lines = members.map(member_line)
+      let body = if member_lines.is_empty() {
+        "No members have all selected roles."
+      } else {
+        summarize_lines(member_lines, MESSAGE_LIMIT - 100)
+      }
+      ctx.edit_original(
+        content="Roles: \{role_mentions(roles)}\n\{body}",
+        allowed_mentions=@model.AllowedMentions::none(),
+      )
+      |> ignore
+    }),
+  )
+}
+
+///|
+fn role_command() -> @discord.Command[Unit] {
+  @discord.slash_group(name="role", description="Role commands", children=[
+    role_list_command(),
+    role_members_command(),
+  ]).check(@discord.guild_only())
+}
+
+///|
+fn pick_command() -> @discord.Command[@model.RoleId] {
+  @discord.slash(
+    name="pick",
+    description="Pick a random member from a role.",
+    args=@discord.Args::of(
+      @discord.arg_role(name="role", description="Role to pick from"),
+    ),
+    handler=Deferred(ephemeral=false, (ctx, role) => {
+      guard ctx.guild_id() is Some(guild_id) else {
+        ctx.edit_original(content="This command can only be used in a server.")
+        |> ignore
+        return
+      }
+      let members = matching_members(ctx.app().http(), guild_id, [role])
+      if members.is_empty() {
+        ctx.edit_original(content="No members have that role.") |> ignore
+        return
+      }
+      let rand = @random.Rand::chacha8()
+      let guild_member = members[rand.int(limit=members.length())]
+      let value = match guild_member.user {
+        Some(user) => "<@\{user.id}>"
+        None => "The selected member has no user data."
+      }
+      ctx.edit_original(
+        embeds=[
+          make_embed(
+            "Picked a random member from <@&\{role}>",
+            color=0xB190FC,
+            fields=[
+              {
+                name: member_display_name(guild_member),
+                value,
+                inline: Some(false),
+              },
+            ],
+          ),
+        ],
+        allowed_mentions=@model.AllowedMentions::none(),
+      )
+      |> ignore
+    }),
+  ).check(@discord.guild_only())
+}
+
+///|
+fn send_agree_button_command() -> @discord.Command[Unit] {
+  @discord.slash(
+    name="send-agree-button",
+    description="Send the membership agreement button.",
+    args=@discord.Args::unit(),
+    handler=Deferred(ephemeral=true, (ctx, _) => {
+      guard ctx.interaction().channel_id is Some(channel_id) else {
+        ctx.edit_original(content="This command requires a channel.") |> ignore
+        return
+      }
+      ctx
+      .app()
+      .http()
+      .channel_ref(channel_id)
+      .send(
+        content="Please press the button below if you agree.\n" +
+          "同意する場合は以下のボタンを押してください。",
+        components=[
+          @discord.action_row([
+            @discord.button(custom_id="agree", label="Agree", style=Primary),
+          ]),
+        ],
+      )
+      |> ignore
+      ctx.edit_original(content="Sent!") |> ignore
+    }),
+    default_member_permissions=@model.Permissions::administrator(),
+  ).check(@discord.guild_only())
+}
+
+///|
+fn member_role_id() -> @model.RoleId? {
+  match @env.get_env_var("MEMBER_ROLE_ID") {
+    Some(raw) => Some(@model.Id::parse(raw)) catch { _ => None }
+    None => None
+  }
+}
+
+///|
+fn register_agree_handler(app : @discord.App) -> Unit {
+  app.on_component(
+    prefix="agree",
+    DeferredMessage(ephemeral=true, ctx => {
+      guard ctx.guild_id() is Some(guild_id) else {
+        ctx.edit_original(content="This button can only be used in a server.")
+        |> ignore
+        return
+      }
+      guard member_role_id() is Some(role_id) else {
+        ctx.edit_original(content="MEMBER_ROLE_ID is not configured correctly.")
+        |> ignore
+        return
+      }
+      ctx
+      .app()
+      .http()
+      .member_ref(guild_id, ctx.user().id)
+      .add_role(role_id, reason="Accepted the membership agreement")
+      ctx.edit_original(content="Verified!") |> ignore
+    }),
+  )
+}
+
+///|
+pub fn register_commands(app : @discord.App) -> Unit {
+  app.command(role_command())
+  app.command(pick_command())
+  app.command(send_agree_button_command())
+  register_agree_handler(app)
+}

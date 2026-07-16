@@ -1,9 +1,8 @@
-.env
 .git
-.venv
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.ruff_cache/
-nekosama.log
+.github
+_build
+.moon
+.env
+.env.*
+*.log
+.DS_Store

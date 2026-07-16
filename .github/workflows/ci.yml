@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  MOONBIT_VERSION: 0.10.4+2cc641edf
+
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository and submodules
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential libssl-dev zlib1g-dev
+
+      - name: Install MoonBit
+        run: |
+          curl --fail --silent --show-error --location \
+            https://cli.moonbitlang.com/install/unix.sh \
+            --output /tmp/moonbit-install.sh
+          bash /tmp/moonbit-install.sh "$MOONBIT_VERSION"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Update MoonBit package registry
+        run: moon update
+
+      - name: Check native target
+        run: moon check --target native
+
+      - name: Test native target
+        env:
+          MOON_CC: /usr/bin/gcc
+        run: moon test --target native
+
+      - name: Check formatting
+        run: moon fmt --check

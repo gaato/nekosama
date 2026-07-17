@@ -24,7 +24,9 @@ pub struct Runtime {
 pub fn Runtime::Runtime(openai_api_key : String) -> Runtime {
   {
     openai: @openai.Client(openai_api_key),
-    cache: @cache.InMemoryCache(resources=@cache.CacheResources::default()),
+    // messages=true keeps recent revisions so MessageUpdateEvent::is_edit
+    // can compare against `before` instead of the edited_timestamp heuristic.
+    cache: @cache.InMemoryCache(resources=@cache.CacheResources(messages=true)),
     translations: LimitedSizeMap(100),
     bot_user_id: Ref(None),
   }
@@ -61,40 +63,13 @@ async fn Runtime::translate(self : Runtime, content : String) -> String {
 
 ///|
 fn translation_embed(description : String) -> @model.Embed {
-  {
-    title: None,
-    typ: None,
-    url: None,
-    description: Some(description),
-    timestamp: None,
-    color: Some(TRANSLATION_COLOR),
-    footer: None,
-    image: None,
-    thumbnail: None,
-    video: None,
-    provider: None,
-    author: None,
-    fields: None,
-    flags: None,
-  }
+  @model.Embed(description~, color=TRANSLATION_COLOR)
 }
 
 ///|
 fn channel_disables_translation(channel : @model.Channel) -> Bool {
   channel.typ == GuildText &&
   nullable_string(channel.topic).map_or(false, topic => topic.contains("notl"))
-}
-
-///|
-async fn Runtime::channel(
-  self : Runtime,
-  ctx : @discord.GatewayCtx,
-  channel_id : @model.ChannelId,
-) -> @model.Channel {
-  match self.cache.channel(channel_id) {
-    Some(channel) => channel
-    None => ctx.channel_ref(channel_id).fetch()
-  }
 }
 
 ///|
@@ -129,6 +104,9 @@ async fn Runtime::handle_message_update(
   ctx : @discord.GatewayCtx,
   event : @model.MessageUpdateEvent,
 ) -> Unit {
+  if !event.is_edit() {
+    return
+  }
   if event.message.author.bot.unwrap_or(false) {
     return
   }
@@ -190,18 +168,6 @@ fn edit_modal() -> @discord.Modal[EditForm] {
 }
 
 ///|
-fn raw_target_message(raw : @discord.CommandCtx) -> @model.Message? {
-  match (raw.data.target_id, raw.data.resolved) {
-    (Some(target_id), Some(resolved)) =>
-      match resolved.messages {
-        Some(messages) => messages.get(target_id.to_string())
-        None => None
-      }
-    _ => None
-  }
-}
-
-///|
 fn delete_command(runtime : Runtime) -> @discord.Command[@model.Message] {
   @discord.message_command(
     name="Delete",
@@ -222,44 +188,31 @@ fn delete_command(runtime : Runtime) -> @discord.Command[@model.Message] {
 fn edit_command(runtime : Runtime) -> @discord.Command[@model.Message] {
   @discord.message_command(
     name="Edit",
-    handler=Raw(raw => {
-      guard raw_target_message(raw) is Some(message) else {
-        raw.respond(
-          content="The selected message is unavailable.",
-          ephemeral=true,
-        )
-        return
-      }
+    handler=Immediate((_, message) => {
       guard runtime.is_own_message(message) else {
-        raw.respond(
+        return @discord.CommandReply::message(
           content="You can only edit messages sent by me.",
           ephemeral=true,
         )
-        return
       }
       guard !message.embeds.is_empty() &&
         message.embeds[0].description is Some(description) else {
-        raw.respond(
+        return @discord.CommandReply::message(
           content="That message has no editable translation.",
           ephemeral=true,
         )
-        return
       }
-      raw.show_modal(
-        custom_id="\{EDIT_MODAL_ID}:\{message.channel_id}/\{message.id}",
-        title="Edit",
-        components=[
-          @discord.label(
-            label="Edit translation",
-            component=@discord.text_input(
-              custom_id="translation",
-              style=Paragraph,
-              max_length=4096,
-              value=description,
-            ),
-          ),
-        ],
-      )
+      let handle = edit_modal().show(
+        state="\{message.channel_id}/\{message.id}",
+        values={ "translation": description },
+      ) catch {
+        _ =>
+          return @discord.CommandReply::message(
+            content="The editor could not be opened.",
+            ephemeral=true,
+          )
+      }
+      ShowModal(handle)
     }),
   )
 }
@@ -320,11 +273,9 @@ fn register_edit_modal(app : @discord.App, runtime : Runtime) -> Unit {
       let embed = {
         ..message.embeds[0],
         description: Some(form.translation),
-        footer: Some({
-          text: "Edited by \{interaction_display_name(ctx)}",
-          icon_url: None,
-          proxy_icon_url: None,
-        }),
+        footer: Some(
+          @model.EmbedFooter("Edited by \{interaction_display_name(ctx)}"),
+        ),
       }
       message_ref.edit(embeds=[embed]) |> ignore
       @discord.InitialResponse::message(content="Edited!", ephemeral=true)

@@ -1,19 +1,12 @@
 ///|
-let gateway_ctx : Ref[@discord.GatewayCtx?] = Ref(None)
-
-///|
 fn ping_command() -> @discord.Command[Unit] {
   @discord.slash(
     name="ping",
     description="Check whether the bot is online",
     args=@discord.Args::unit(),
-    handler=Immediate((_, _) => {
-      let content = match gateway_ctx.val {
-        Some(ctx) =>
-          match ctx.shard_raw().latency_ms() {
-            Some(latency) => "Pong! \{latency} ms"
-            None => "Pong! Latency is not available yet."
-          }
+    handler=Immediate((ctx, _) => {
+      let content = match ctx.app().latency_ms() {
+        Some(latency) => "Pong! \{latency} ms"
         None => "Pong! Latency is not available yet."
       }
       @discord.CommandReply::message(content~)
@@ -64,8 +57,7 @@ async fn main {
     let bot = @discord.Bot(app, token~, intents=bot_intents())
     runtime.attach_cache(bot)
     @nekosama.register_translation_events(bot, runtime)
-    bot.on(@discord.Events::ready(), (ctx, ready) => {
-      gateway_ctx.val = Some(ctx)
+    bot.on(@discord.Events::ready(), (_, ready) => {
       runtime.set_bot_user_id(ready.user.id)
       println("[bot] ready as \{ready.user.username}")
     })

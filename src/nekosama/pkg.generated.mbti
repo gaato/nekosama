@@ -20,8 +20,6 @@ pub fn register_translation_commands(@app.App, Runtime) -> Unit
 
 pub fn register_translation_events(@bot.Bot, Runtime) -> Unit
 
-pub fn split_codepoints(String, limit? : Int) -> Array[String]
-
 pub fn translation_probe(String) -> String
 
 // Errors

@@ -115,35 +115,11 @@ fn role_mentions(roles : Array[@model.RoleId]) -> String {
 }
 
 ///|
-fn make_embed(
-  title : String,
-  description? : String,
-  color? : Int,
-  fields? : Array[@model.EmbedField],
-) -> @model.Embed {
-  {
-    title: Some(title),
-    typ: None,
-    url: None,
-    description,
-    timestamp: None,
-    color,
-    footer: None,
-    image: None,
-    thumbnail: None,
-    video: None,
-    provider: None,
-    author: None,
-    fields,
-    flags: None,
-  }
-}
-
-///|
 fn role_list_command() -> @discord.SlashChild {
   @discord.subcommand(
     name="list",
     description="Show all roles.",
+    description_localizations={ "ja": "ロール一覧を表示します" },
     args=@discord.Args::unit(),
     handler=Deferred(ephemeral=false, (ctx, _) => {
       guard ctx.guild_id() is Some(guild_id) else {
@@ -161,7 +137,7 @@ fn role_list_command() -> @discord.SlashChild {
       } else {
         description
       }
-      ctx.edit_original(embeds=[make_embed("Role list", description~)])
+      ctx.edit_original(embeds=[@model.Embed(title="Role list", description~)])
       |> ignore
     }),
   )
@@ -172,6 +148,9 @@ fn role_members_command() -> @discord.SlashChild {
   @discord.subcommand(
     name="members",
     description="Show members who have all selected roles.",
+    description_localizations={
+      "ja": "ロールのメンバー一覧を表示します",
+    },
     args=@discord.Args::map3(
       @discord.arg_role(name="role1", description="Required role"),
       @discord.arg_role(name="role2", description="Second required role").optional(),
@@ -214,6 +193,9 @@ fn pick_command() -> @discord.Command[@model.RoleId] {
   @discord.slash(
     name="pick",
     description="Pick a random member from a role.",
+    description_localizations={
+      "ja": "ロールからランダムにメンバーを選びます。",
+    },
     args=@discord.Args::of(
       @discord.arg_role(name="role", description="Role to pick from"),
     ),
@@ -236,15 +218,15 @@ fn pick_command() -> @discord.Command[@model.RoleId] {
       }
       ctx.edit_original(
         embeds=[
-          make_embed(
-            "Picked a random member from <@&\{role}>",
+          @model.Embed(
+            title="Picked a random member from <@&\{role}>",
             color=0xB190FC,
             fields=[
-              {
-                name: member_display_name(guild_member),
+              @model.EmbedField(
+                member_display_name(guild_member),
                 value,
-                inline: Some(false),
-              },
+                inline=false,
+              ),
             ],
           ),
         ],

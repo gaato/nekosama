@@ -84,15 +84,15 @@ fn author_display_name(event : @model.MessageCreateEvent) -> String {
 ///|
 fn author_chunks(content : String, author_id : @model.UserId) -> Array[String] {
   let prefix = "<@\{author_id}>\n"
-  let first_limit = 2000 - prefix.iter().count()
-  let first_pass = split_codepoints(content, limit=first_limit)
+  let first_limit = 2000 - prefix.length()
+  let first_pass = @util.split_content(content, limit=first_limit)
   if first_pass.is_empty() {
     return []
   }
   let chunks = [prefix + first_pass[0]]
   if first_pass.length() > 1 {
     let remaining = first_pass[1:].join("")
-    chunks.push_iter(split_codepoints(remaining).iter())
+    chunks.push_iter(@util.split_content(remaining).iter())
   }
   chunks
 }
@@ -105,14 +105,15 @@ async fn Runtime::handle_owned_thread(
   bot_user_id : @model.UserId,
 ) -> Unit {
   let channel = ctx.channel_ref(event.message.channel_id)
-  channel.typing()
-  let history = channel.messages(page_size=30).collect(max=30).rev()
-  let messages : Array[@openai.ChatMessage] = [
-    { role: "system", content: THREAD_CHAT_PROMPT },
-  ]
-  messages.push_iter(thread_chat_messages(history, bot_user_id).iter())
-  let response = self.openai.chat_completion(THREAD_CHAT_MODEL, messages)
-  for chunk in split_codepoints(response) {
+  let response = channel.with_typing(() => {
+    let history = channel.messages(page_size=30).collect(max=30).rev()
+    let messages : Array[@openai.ChatMessage] = [
+      { role: "system", content: THREAD_CHAT_PROMPT },
+    ]
+    messages.push_iter(thread_chat_messages(history, bot_user_id).iter())
+    self.openai.chat_completion(THREAD_CHAT_MODEL, messages)
+  })
+  for chunk in @util.split_content(response) {
     ctx.message_ref(event).reply(content=chunk) |> ignore
   }
 }
@@ -125,13 +126,16 @@ async fn Runtime::handle_mention(
   bot_user_id : @model.UserId,
   channel_type : @model.ChannelType,
 ) -> Unit {
-  ctx.channel_ref(event.message.channel_id).typing()
-  let response = self.openai.chat_completion(MENTION_CHAT_MODEL, [
-    {
-      role: "user",
-      content: remove_bot_mention(event.message.content, bot_user_id),
-    },
-  ])
+  let response = ctx
+    .channel_ref(event.message.channel_id)
+    .with_typing(() => {
+      self.openai.chat_completion(MENTION_CHAT_MODEL, [
+        {
+          role: "user",
+          content: remove_bot_mention(event.message.content, bot_user_id),
+        },
+      ])
+    })
   let destination = if is_thread_type(Some(channel_type)) {
     ctx.channel_ref(event.message.channel_id)
   } else {
@@ -155,7 +159,7 @@ async fn Runtime::handle_message_create(
     return
   }
   guard self.bot_user_id.val is Some(bot_user_id) else { return }
-  let channel = self.channel(ctx, event.message.channel_id)
+  let channel = ctx.resolve_channel(event.message.channel_id)
   let channel_type = event.channel_type.unwrap_or(channel.typ)
   if is_bot_owned_thread_type(Some(channel_type)) {
     if channel.owner_id == Some(bot_user_id) {

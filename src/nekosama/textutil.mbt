@@ -23,27 +23,3 @@ pub fn is_blank(text : String) -> Bool {
   }
   true
 }
-
-///|
-pub fn split_codepoints(text : String, limit? : Int = 2000) -> Array[String] {
-  guard limit > 0 else { panic() }
-  if text.is_empty() {
-    return []
-  }
-  let chunks : Array[String] = []
-  let mut builder = StringBuilder()
-  let mut length = 0
-  for char in text {
-    if length == limit {
-      chunks.push(builder.to_string())
-      builder = StringBuilder()
-      length = 0
-    }
-    builder.write_char(char)
-    length += 1
-  }
-  if length > 0 {
-    chunks.push(builder.to_string())
-  }
-  chunks
-}

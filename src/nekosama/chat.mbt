@@ -69,13 +69,13 @@ fn remove_bot_mention(content : String, bot_user_id : @model.UserId) -> String {
 fn author_display_name(event : @model.MessageCreateEvent) -> String {
   match event.guild_member {
     Some(guild_member) =>
-      nullable_string(guild_member.nick).unwrap_or(
-        nullable_string(event.message.author.global_name).unwrap_or(
+      @model.flatten(guild_member.nick).unwrap_or(
+        @model.flatten(event.message.author.global_name).unwrap_or(
           event.message.author.username,
         ),
       )
     None =>
-      nullable_string(event.message.author.global_name).unwrap_or(
+      @model.flatten(event.message.author.global_name).unwrap_or(
         event.message.author.username,
       )
   }

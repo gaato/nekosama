@@ -53,20 +53,12 @@ async fn matching_members(
 }
 
 ///|
-fn nullable_string(value : @model.Nullable[String]?) -> String? {
-  match value {
-    Some(nullable) => nullable.to_option()
-    None => None
-  }
-}
-
-///|
 fn member_display_name(guild_member : @model.GuildMember) -> String {
-  if nullable_string(guild_member.nick) is Some(nick) {
+  if @model.flatten(guild_member.nick) is Some(nick) {
     return nick
   }
   match guild_member.user {
-    Some(user) => nullable_string(user.global_name).unwrap_or(user.username)
+    Some(user) => @model.flatten(user.global_name).unwrap_or(user.username)
     None => "Unknown member"
   }
 }
@@ -122,12 +114,8 @@ fn role_list_command() -> @discord.SlashChild {
     description_localizations={ "ja": "ロール一覧を表示します" },
     args=@discord.Args::unit(),
     handler=Deferred(ephemeral=false, (ctx, _) => {
-      guard ctx.guild_id() is Some(guild_id) else {
-        ctx.edit_original(content="This command can only be used in a server.")
-        |> ignore
-        return
-      }
-      let roles = ctx.app().http().guild_ref(guild_id).roles()
+      let guild = ctx.guild_scope()
+      let roles = ctx.app().http().guild_ref(guild.guild_id).roles()
       let description = summarize_lines(
         roles.map(role => "<@&\{role.id}>"),
         EMBED_DESCRIPTION_LIMIT,
@@ -158,13 +146,9 @@ fn role_members_command() -> @discord.SlashChild {
       (role1, role2, role3) => { role1, role2, role3 },
     ),
     handler=Deferred(ephemeral=false, (ctx, args) => {
-      guard ctx.guild_id() is Some(guild_id) else {
-        ctx.edit_original(content="This command can only be used in a server.")
-        |> ignore
-        return
-      }
+      let guild = ctx.guild_scope()
       let roles = selected_roles(args)
-      let members = matching_members(ctx.app().http(), guild_id, roles)
+      let members = matching_members(ctx.app().http(), guild.guild_id, roles)
       let member_lines = members.map(member_line)
       let body = if member_lines.is_empty() {
         "No members have all selected roles."
@@ -200,12 +184,8 @@ fn pick_command() -> @discord.Command[@model.RoleId] {
       @discord.arg_role(name="role", description="Role to pick from"),
     ),
     handler=Deferred(ephemeral=false, (ctx, role) => {
-      guard ctx.guild_id() is Some(guild_id) else {
-        ctx.edit_original(content="This command can only be used in a server.")
-        |> ignore
-        return
-      }
-      let members = matching_members(ctx.app().http(), guild_id, [role])
+      let guild = ctx.guild_scope()
+      let members = matching_members(ctx.app().http(), guild.guild_id, [role])
       if members.is_empty() {
         ctx.edit_original(content="No members have that role.") |> ignore
         return
@@ -281,11 +261,7 @@ fn register_agree_handler(app : @discord.App) -> Unit {
   app.on_component(
     prefix="agree",
     DeferredMessage(ephemeral=true, ctx => {
-      guard ctx.guild_id() is Some(guild_id) else {
-        ctx.edit_original(content="This button can only be used in a server.")
-        |> ignore
-        return
-      }
+      let guild = ctx.guild_scope()
       guard member_role_id() is Some(role_id) else {
         ctx.edit_original(content="MEMBER_ROLE_ID is not configured correctly.")
         |> ignore
@@ -294,7 +270,7 @@ fn register_agree_handler(app : @discord.App) -> Unit {
       ctx
       .app()
       .http()
-      .member_ref(guild_id, ctx.user().id)
+      .member_ref(guild.guild_id, ctx.user().id)
       .add_role(role_id, reason="Accepted the membership agreement")
       ctx.edit_original(content="Verified!") |> ignore
     }),

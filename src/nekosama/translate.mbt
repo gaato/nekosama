@@ -69,7 +69,7 @@ fn translation_embed(description : String) -> @model.Embed {
 ///|
 fn channel_disables_translation(channel : @model.Channel) -> Bool {
   channel.typ == GuildText &&
-  nullable_string(channel.topic).map_or(false, topic => topic.contains("notl"))
+  @model.flatten(channel.topic).map_or(false, topic => topic.contains("notl"))
 }
 
 ///|
@@ -237,7 +237,7 @@ fn interaction_display_name(ctx : @discord.ModalImmediateCtx) -> String {
   match ctx.interaction().guild_member {
     Some(guild_member) => member_display_name(guild_member)
     None =>
-      nullable_string(ctx.user().global_name).unwrap_or(ctx.user().username)
+      @model.flatten(ctx.user().global_name).unwrap_or(ctx.user().username)
   }
 }
 

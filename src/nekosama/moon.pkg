@@ -1,0 +1,21 @@
+import {
+  "gaato/discord",
+  "gaato/discord/cache",
+  "gaato/discord/http",
+  "gaato/discord/model",
+  "gaato/discord/util",
+  "gaato/nekosama/openai",
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/random",
+  "moonbitlang/core/string",
+}
+
+supported_targets = "native"
+
+import {
+  "gaato/discord/framework",
+  "gaato/discord/interaction",
+} for "wbtest"

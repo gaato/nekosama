@@ -21,7 +21,7 @@ pub fn Client::Client(
   api_key : String,
   base_url? : String = "https://api.openai.com",
 ) -> Client {
-  { api_key, base_url }
+  { api_key, base_url, }
 }
 
 ///|
@@ -66,7 +66,7 @@ pub async fn Client::chat_completion(
   model : String,
   messages : Array[ChatMessage],
 ) -> String {
-  let headers = {
+  let headers : Map[@ahttp.CaseInsensitiveString, String] = {
     "Authorization": "Bearer \{self.api_key}",
     "Content-Type": "application/json",
   }

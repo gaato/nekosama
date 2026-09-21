@@ -32,4 +32,3 @@ pub async fn Client::chat_completion(Self, String, Array[ChatMessage]) -> String
 // Type aliases
 
 // Traits
-

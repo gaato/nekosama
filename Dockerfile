@@ -1,6 +1,6 @@
 FROM debian:bookworm-slim AS build
 
-ARG MOONBIT_VERSION=0.10.4+2cc641edf
+ARG MOONBIT_VERSION=0.10.14+7d59c7ec9
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
@@ -9,6 +9,7 @@ RUN apt-get update \
         curl \
         git \
         libssl-dev \
+        nodejs \
         zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -36,7 +37,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build \
-    /app/_build/native/release/build/gaato/nekosama/main/main.exe \
+    /app/_build/native/release/build/main/main.exe \
     /usr/local/bin/nekosama
 
 USER nobody

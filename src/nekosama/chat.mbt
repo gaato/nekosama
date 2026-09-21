@@ -108,7 +108,7 @@ async fn Runtime::handle_owned_thread(
   let response = channel.with_typing(() => {
     let history = channel.messages(page_size=30).collect(max=30).rev()
     let messages : Array[@openai.ChatMessage] = [
-      { role: "system", content: THREAD_CHAT_PROMPT },
+      { role: "system", content: THREAD_CHAT_PROMPT, },
     ]
     messages.push_iter(thread_chat_messages(history, bot_user_id).iter())
     self.openai.chat_completion(THREAD_CHAT_MODEL, messages)

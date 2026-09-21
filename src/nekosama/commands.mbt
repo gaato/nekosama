@@ -143,7 +143,7 @@ fn role_members_command() -> @discord.SlashChild {
       @discord.arg_role(name="role1", description="Required role"),
       @discord.arg_role(name="role2", description="Second required role").optional(),
       @discord.arg_role(name="role3", description="Third required role").optional(),
-      (role1, role2, role3) => { role1, role2, role3 },
+      (role1, role2, role3) => { role1, role2, role3, },
     ),
     handler=Deferred(ephemeral=false, (ctx, args) => {
       let guild = ctx.guild_scope()
@@ -237,7 +237,11 @@ fn send_agree_button_command() -> @discord.Command[Unit] {
           "同意する場合は以下のボタンを押してください。",
         components=[
           @discord.action_row([
-            @discord.button(custom_id="agree", label="Agree", style=Primary),
+            @discord.button(
+              custom_id=agree_route().custom_id(()),
+              label="Agree",
+              style=Primary,
+            ),
           ]),
         ],
       )
@@ -257,10 +261,17 @@ fn member_role_id() -> @model.RoleId? {
 }
 
 ///|
+/// The stateless route keeps the bare `agree` custom id, so buttons posted by
+/// the Python bot keep working.
+fn agree_route() -> @discord.ComponentRoute[Unit] {
+  @discord.component_route(id="agree", state=@discord.CustomIdCodec::unit())
+}
+
+///|
 fn register_agree_handler(app : @discord.App) -> Unit {
   app.on_component(
-    prefix="agree",
-    DeferredMessage(ephemeral=true, ctx => {
+    agree_route(),
+    DeferredMessage(ephemeral=true, (ctx, _) => {
       let guild = ctx.guild_scope()
       guard member_role_id() is Some(role_id) else {
         ctx.edit_original(content="MEMBER_ROLE_ID is not configured correctly.")

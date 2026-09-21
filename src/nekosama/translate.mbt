@@ -56,8 +56,8 @@ fn Runtime::is_own_message(self : Runtime, message : @model.Message) -> Bool {
 ///|
 async fn Runtime::translate(self : Runtime, content : String) -> String {
   self.openai.chat_completion(TRANSLATION_MODEL, [
-    { role: "system", content: TRANSLATION_PROMPT },
-    { role: "user", content },
+    { role: "system", content: TRANSLATION_PROMPT, },
+    { role: "user", content, },
   ])
 }
 

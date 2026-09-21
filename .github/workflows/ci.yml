@@ -8,16 +8,14 @@ permissions:
   contents: read
 
 env:
-  MOONBIT_VERSION: 0.10.4+2cc641edf
+  MOONBIT_VERSION: 0.10.14+7d59c7ec9
 
 jobs:
   native:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository and submodules
+      - name: Check out repository
         uses: actions/checkout@v7
-        with:
-          submodules: recursive
 
       - name: Install native build dependencies
         run: |

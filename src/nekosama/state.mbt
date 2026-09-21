@@ -10,7 +10,7 @@ pub fn[K : Eq + Hash, V] LimitedSizeMap::LimitedSizeMap(
   capacity : Int,
 ) -> LimitedSizeMap[K, V] {
   guard capacity > 0 else { panic() }
-  { capacity, values: Map([]), order: [] }
+  { capacity, values: Map([]), order: [], }
 }
 
 ///|

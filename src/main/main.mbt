@@ -15,21 +15,21 @@ fn ping_command() -> @discord.Command[Unit] {
 }
 
 ///|
-fn command_sync() -> @discord.CommandSync {
+fn command_scope() -> @discord.CommandScope {
   match @env.get_env_var("GUILD_ID") {
     Some(raw) => {
       let guild_id : @model.GuildId? = Some(@model.Id::parse(raw)) catch {
         _ => None
       }
       match guild_id {
-        Some(value) => Guild(value)
+        Some(value) => @discord.CommandScope::Guild(value)
         None => {
           println("[bot] invalid GUILD_ID, syncing globally")
-          Global
+          @discord.CommandScope::Global
         }
       }
     }
-    None => Global
+    None => @discord.CommandScope::Global
   }
 }
 
@@ -45,16 +45,21 @@ fn bot_intents() -> @model.Intents {
 ///|
 async fn main {
   @signal.set_global_cancellation_signals([SIGINT, SIGTERM])
-  try {
+  @async.handle_cancellation(() => {
     let token = @env.get_env_var("DISCORD_TOKEN").unwrap_or("")
     let runtime = @nekosama.Runtime(
       @env.get_env_var("OPENAI_API_KEY").unwrap_or(""),
     )
-    let app = @discord.App(sync=command_sync())
+    let app = @discord.App()
     app.command(ping_command())
     @nekosama.register_commands(app)
     @nekosama.register_translation_commands(app, runtime)
-    let bot = @discord.Bot(app, token~, intents=bot_intents())
+    let bot = @discord.Bot(
+      app,
+      token~,
+      intents=bot_intents(),
+      sync=command_scope(),
+    )
     runtime.attach_cache(bot)
     @nekosama.register_translation_events(bot, runtime)
     bot.on(@discord.Events::ready(), (_, ready) => {
@@ -62,10 +67,7 @@ async fn main {
       println("[bot] ready as \{ready.user.username}")
     })
     bot.run()
-  } catch {
-    error if @async.is_being_cancelled() || @async.is_cancellation_error(error) =>
-      ()
-    error => raise error
-  }
+  })
+  |> ignore
   println("[bot] shutting down")
 }

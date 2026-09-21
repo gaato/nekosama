@@ -12,10 +12,11 @@ test "selected roles preserve optional argument order" {
   let role1 : @model.RoleId = @model.Id::parse("1")
   let role2 : @model.RoleId = @model.Id::parse("2")
   let role3 : @model.RoleId = @model.Id::parse("3")
-  assert_eq(selected_roles({ role1, role2: Some(role2), role3: Some(role3) }), [
-    role1, role2, role3,
-  ])
-  assert_eq(selected_roles({ role1, role2: None, role3: Some(role3) }), [
+  assert_eq(
+    selected_roles({ role1, role2: Some(role2), role3: Some(role3), }),
+    [role1, role2, role3],
+  )
+  assert_eq(selected_roles({ role1, role2: None, role3: Some(role3), }), [
     role1, role3,
   ])
 }

@@ -40,6 +40,11 @@ COPY --from=build \
     /app/_build/native/release/build/main/main.exe \
     /usr/local/bin/nekosama
 
+# Per-guild settings and feature state live here; mount a volume to keep them.
+ENV NEKOSAMA_DATA_DIR=/data
+RUN mkdir /data && chown nobody /data
+VOLUME /data
+
 USER nobody
 
 ENTRYPOINT ["/usr/local/bin/nekosama"]

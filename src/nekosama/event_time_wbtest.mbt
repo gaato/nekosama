@@ -11,17 +11,14 @@ fn when_text(text : String) -> String {
 }
 
 ///|
-test "civil dates convert to and from day counts" {
-  inspect(days_from_civil(1970, 1, 1), content="0")
-  inspect(days_from_civil(2026, 9, 21), content="20717")
-  debug_inspect(civil_from_days(20717), content="(2026, 9, 21)")
-  debug_inspect(
-    civil_from_days(days_from_civil(2028, 2, 29)),
-    content="(2028, 2, 29)",
-  )
+test "event times convert to Unix seconds in JST" {
   let noon : CivilTime = { year: 2026, month: 9, day: 21, hour: 12, minute: 0, }
   inspect(noon.unix_seconds(), content="1789959600")
   inspect(jst_year_at(TEST_NOW), content="2026")
+  let epoch : CivilTime = { year: 1970, month: 1, day: 1, hour: 9, minute: 0, }
+  inspect(epoch.unix_seconds(), content="0")
+  inspect(jst_year_at(-32401), content="1969")
+  inspect(jst_year_at(-32400), content="1970")
 }
 
 ///|
@@ -60,9 +57,19 @@ test "event times are read as JST" {
 test "a date without a year means its next occurrence" {
   inspect(when_text("7/20 21:00"), content="2027-07-20T21:00:00+09:00")
   inspect(when_text("9/21 11:59"), content="2027-09-21T11:59:00+09:00")
+  inspect(when_text("9/21 12:00"), content="2027-09-21T12:00:00+09:00")
   inspect(when_text("9/21 12:01"), content="2026-09-21T12:01:00+09:00")
   // An explicit year is taken as written, even in the past.
   inspect(when_text("2020/1/1 0:00"), content="2020-01-01T00:00:00+09:00")
+}
+
+///|
+test "leap years and input year boundaries retain their meaning" {
+  inspect(when_text("2000/2/29 0:00"), content="2000-02-29T00:00:00+09:00")
+  inspect(when_text("1900/2/29 0:00"), content="None")
+  inspect(when_text("2100/2/29 0:00"), content="None")
+  inspect(when_text("0000/2/29 0:00"), content="0-02-29T00:00:00+09:00")
+  inspect(when_text("9999/12/31 23:59"), content="9999-12-31T23:59:00+09:00")
 }
 
 ///|

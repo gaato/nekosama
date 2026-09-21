@@ -1,6 +1,6 @@
 ///|
 /// Japan has no daylight saving time, so JST is a fixed offset.
-const JST_OFFSET_SECONDS : Int64 = 32400
+let jst_zone : @time.Zone = try! @time.fixed_zone("JST", 32400)
 
 ///|
 /// A wall-clock time in JST, as typed into `/event`.
@@ -13,75 +13,32 @@ priv struct CivilTime {
 }
 
 ///|
-/// Days from 1970-01-01 to the given proleptic Gregorian date.
-fn days_from_civil(year : Int, month : Int, day : Int) -> Int64 {
-  let y = if month <= 2 { year - 1 } else { year }
-  let era = (if y >= 0 { y } else { y - 399 }) / 400
-  let year_of_era = y - era * 400
-  let shifted_month = if month > 2 { month - 3 } else { month + 9 }
-  let day_of_year = (153 * shifted_month + 2) / 5 + day - 1
-  let day_of_era = year_of_era * 365 +
-    year_of_era / 4 -
-    year_of_era / 100 +
-    day_of_year
-  era.to_int64() * 146097L + day_of_era.to_int64() - 719468L
-}
-
-///|
-/// The inverse of `days_from_civil`: (year, month, day).
-fn civil_from_days(days : Int64) -> (Int, Int, Int) {
-  let z = days + 719468L
-  let era = (if z >= 0L { z } else { z - 146096L }) / 146097L
-  let day_of_era = (z - era * 146097L).to_int()
-  let year_of_era = (
-      day_of_era - day_of_era / 1460 + day_of_era / 36524 - day_of_era / 146096
-    ) /
-    365
-  let day_of_year = day_of_era -
-    (365 * year_of_era + year_of_era / 4 - year_of_era / 100)
-  let shifted_month = (5 * day_of_year + 2) / 153
-  let day = day_of_year - (153 * shifted_month + 2) / 5 + 1
-  let month = if shifted_month < 10 {
-    shifted_month + 3
-  } else {
-    shifted_month - 9
-  }
-  let year = year_of_era + era.to_int() * 400
-  (if month <= 2 { year + 1 } else { year }, month, day)
-}
-
-///|
-fn days_in_month(year : Int, month : Int) -> Int {
-  match month {
-    2 =>
-      if (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 {
-        29
-      } else {
-        28
-      }
-    4 | 6 | 9 | 11 => 30
-    _ => 31
-  }
+fn CivilTime::zoned(self : CivilTime) -> @time.ZonedDateTime raise {
+  @time.date_time(
+    self.year,
+    self.month,
+    self.day,
+    hour=self.hour,
+    minute=self.minute,
+    zone=jst_zone,
+  )
 }
 
 ///|
 fn CivilTime::is_valid(self : CivilTime) -> Bool {
-  self.month >= 1 &&
-  self.month <= 12 &&
-  self.day >= 1 &&
-  self.day <= days_in_month(self.year, self.month) &&
-  self.hour >= 0 &&
-  self.hour <= 23 &&
-  self.minute >= 0 &&
-  self.minute <= 59
+  // x/time accepts 24:00; /event has always required hours in 0..23.
+  guard self.hour >= 0 && self.hour < 24 else { return false }
+  try self.zoned() catch {
+    _ => false
+  } noraise {
+    _ => true
+  }
 }
 
 ///|
 fn CivilTime::unix_seconds(self : CivilTime) -> Int64 {
-  days_from_civil(self.year, self.month, self.day) * 86400L +
-  self.hour.to_int64() * 3600L +
-  self.minute.to_int64() * 60L -
-  JST_OFFSET_SECONDS
+  // Called only after validation by parse_when.
+  (try! self.zoned()).to_unix_second()
 }
 
 ///|
@@ -102,13 +59,7 @@ fn CivilTime::iso8601(self : CivilTime) -> String {
 
 ///|
 fn jst_year_at(unix_seconds : Int64) -> Int {
-  let shifted = unix_seconds + JST_OFFSET_SECONDS
-  let days = if shifted >= 0L {
-    shifted / 86400L
-  } else {
-    (shifted - 86399L) / 86400L
-  }
-  civil_from_days(days).0
+  (try! @time.unix(unix_seconds, zone=jst_zone)).year()
 }
 
 ///|

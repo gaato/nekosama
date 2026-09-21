@@ -11,6 +11,7 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/core/random",
   "moonbitlang/core/string",
+  "moonbitlang/x/time",
 }
 
 supported_targets = "native"

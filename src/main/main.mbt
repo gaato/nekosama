@@ -39,7 +39,8 @@ fn bot_intents() -> @model.Intents {
   @model.Intents::guild_messages() |
   @model.Intents::direct_messages() |
   @model.Intents::message_content() |
-  @model.Intents::guild_members()
+  @model.Intents::guild_members() |
+  @model.Intents::guild_scheduled_events()
 }
 
 ///|

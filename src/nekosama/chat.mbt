@@ -1,5 +1,20 @@
 ///|
-const CHAT_MODEL : String = "gpt-5.6-terra"
+const DEFAULT_CHAT_MODEL : String = "gpt-5.6-terra"
+
+///|
+/// `NEKOSAMA_CHAT_MODEL` replaces the model without a rebuild, so a model
+/// shutdown on OpenAI's side is a configuration change.
+fn chat_model() -> String {
+  model_from_env("NEKOSAMA_CHAT_MODEL", DEFAULT_CHAT_MODEL)
+}
+
+///|
+fn model_from_env(name : String, default : String) -> String {
+  match @env.get_env_var(name) {
+    Some(model) if !is_blank(model) => model
+    _ => default
+  }
+}
 
 ///|
 const THREAD_CHAT_PROMPT : String = "Since this is a Discord, you can use Markdown."
@@ -108,7 +123,7 @@ async fn Runtime::handle_owned_thread(
       { role: "system", content: THREAD_CHAT_PROMPT, },
     ]
     messages.push_iter(thread_chat_messages(history, bot_user_id).iter())
-    self.openai.chat_completion(CHAT_MODEL, messages)
+    self.openai.chat_completion(chat_model(), messages)
   })
   for chunk in @util.split_content(response) {
     ctx.message_ref(event).reply(content=chunk) |> ignore
@@ -126,7 +141,7 @@ async fn Runtime::handle_mention(
   let response = ctx
     .channel_ref(event.message.channel_id)
     .with_typing(() => {
-      self.openai.chat_completion(CHAT_MODEL, [
+      self.openai.chat_completion(chat_model(), [
         {
           role: "user",
           content: remove_bot_mention(event.message.content, bot_user_id),

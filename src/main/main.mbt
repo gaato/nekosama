@@ -34,6 +34,17 @@ fn command_scope() -> @discord.CommandScope {
 }
 
 ///|
+/// `DISCORD_BOT_TOKEN` is the name the Python bot's deployments use.
+fn discord_token() -> String {
+  for name in ["DISCORD_TOKEN", "DISCORD_BOT_TOKEN"] {
+    if @env.get_env_var(name) is Some(token) && !token.is_empty() {
+      return token
+    }
+  }
+  ""
+}
+
+///|
 fn bot_intents() -> @model.Intents {
   @model.Intents::guilds() |
   @model.Intents::guild_messages() |
@@ -47,7 +58,7 @@ fn bot_intents() -> @model.Intents {
 async fn main {
   @signal.set_global_cancellation_signals([SIGINT, SIGTERM])
   @async.handle_cancellation(() => {
-    let token = @env.get_env_var("DISCORD_TOKEN").unwrap_or("")
+    let token = discord_token()
     let config = @nekosama.ConfigStore::load(@nekosama.config_path())
     let runtime = @nekosama.Runtime(
       @env.get_env_var("OPENAI_API_KEY").unwrap_or(""),

@@ -64,7 +64,7 @@ set -x GUILD_ID "the development guild ID"
 moon run --release --target native src/main
 ```
 
-`DISCORD_TOKEN` is required to connect to Discord. `OPENAI_API_KEY` is required
+`DISCORD_TOKEN` (or `DISCORD_BOT_TOKEN`) is required to connect to Discord. `OPENAI_API_KEY` is required
 for translation and chat. `GUILD_ID` is optional: when present and valid,
 application commands are synced only to that guild; otherwise they are synced
 globally.

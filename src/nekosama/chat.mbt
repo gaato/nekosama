@@ -1,8 +1,5 @@
 ///|
-const THREAD_CHAT_MODEL : String = "gpt-4o"
-
-///|
-const MENTION_CHAT_MODEL : String = "gpt-4"
+const CHAT_MODEL : String = "gpt-5.6-terra"
 
 ///|
 const THREAD_CHAT_PROMPT : String = "Since this is a Discord, you can use Markdown."
@@ -111,7 +108,7 @@ async fn Runtime::handle_owned_thread(
       { role: "system", content: THREAD_CHAT_PROMPT, },
     ]
     messages.push_iter(thread_chat_messages(history, bot_user_id).iter())
-    self.openai.chat_completion(THREAD_CHAT_MODEL, messages)
+    self.openai.chat_completion(CHAT_MODEL, messages)
   })
   for chunk in @util.split_content(response) {
     ctx.message_ref(event).reply(content=chunk) |> ignore
@@ -129,7 +126,7 @@ async fn Runtime::handle_mention(
   let response = ctx
     .channel_ref(event.message.channel_id)
     .with_typing(() => {
-      self.openai.chat_completion(MENTION_CHAT_MODEL, [
+      self.openai.chat_completion(CHAT_MODEL, [
         {
           role: "user",
           content: remove_bot_mention(event.message.content, bot_user_id),

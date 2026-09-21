@@ -12,13 +12,13 @@ Discord threads.
   of up to three roles.
 - `/pick` chooses a random member from a role intersection.
 - `/send-agree-button` posts a button that grants the configured member role.
-- Messages in ordinary channels are translated with `gpt-4.1-nano`, except in
+- Messages in ordinary channels are translated with `gpt-5.6-luna`, except in
   channels whose topic contains `notl`.
 - Translation replies stay in sync when their source message is edited or
   deleted. The bot's translation embeds can also be edited or deleted through
   message context-menu commands.
-- Mentioning the bot starts or continues a `gpt-4` conversation, while
-  bot-owned threads use their latest 30 messages as `gpt-4o` context.
+- Mentioning the bot starts or continues a `gpt-5.6-terra` conversation, while
+  bot-owned threads use their latest 30 messages as context.
 
 ## Prerequisites
 

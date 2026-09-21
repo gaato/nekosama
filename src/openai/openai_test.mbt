@@ -1,16 +1,28 @@
 ///|
 test "encode a chat completion request" {
   json_inspect(
-    @openai.chat_request_json("gpt-4.1-nano", [
+    @openai.chat_request_json("gpt-5.6-luna", [
       { role: "system", content: "Translate to English.", },
       { role: "user", content: "こんにちは", },
     ]),
     content={
-      "model": "gpt-4.1-nano",
+      "model": "gpt-5.6-luna",
       "messages": [
         { "role": "system", "content": "Translate to English." },
         { "role": "user", "content": "こんにちは" },
       ],
+    },
+  )
+}
+
+///|
+test "encode the reasoning effort only when it is given" {
+  json_inspect(
+    @openai.chat_request_json("gpt-5.6-luna", [], reasoning_effort=Off),
+    content={
+      "model": "gpt-5.6-luna",
+      "messages": [],
+      "reasoning_effort": "none",
     },
   )
 }

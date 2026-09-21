@@ -1,5 +1,5 @@
 ///|
-const TRANSLATION_MODEL : String = "gpt-4.1-nano"
+const TRANSLATION_MODEL : String = "gpt-5.6-luna"
 
 ///|
 const TRANSLATION_COLOR : Int = 0xBF65E8
@@ -55,10 +55,15 @@ fn Runtime::is_own_message(self : Runtime, message : @model.Message) -> Bool {
 
 ///|
 async fn Runtime::translate(self : Runtime, content : String) -> String {
-  self.openai.chat_completion(TRANSLATION_MODEL, [
-    { role: "system", content: TRANSLATION_PROMPT, },
-    { role: "user", content, },
-  ])
+  // Translation runs on every message, so skip the reasoning pass.
+  self.openai.chat_completion(
+    TRANSLATION_MODEL,
+    [
+      { role: "system", content: TRANSLATION_PROMPT, },
+      { role: "user", content, },
+    ],
+    reasoning_effort=Off,
+  )
 }
 
 ///|

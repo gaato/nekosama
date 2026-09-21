@@ -151,6 +151,11 @@ async fn Runtime::handle_message_delete(
 }
 
 ///|
+/// Discord caps a modal text input (and its prefilled value) at 4000
+/// characters, below the 4096 an embed description can hold.
+const MODAL_TEXT_LIMIT : Int = 4000
+
+///|
 priv struct EditForm {
   translation : String
 }
@@ -165,7 +170,7 @@ fn edit_modal() -> @discord.Modal[EditForm] {
         custom_id="translation",
         label="Edit translation",
         style=Paragraph,
-        max_length=4096,
+        max_length=MODAL_TEXT_LIMIT,
       ),
       translation => { translation, },
     ),
@@ -204,6 +209,12 @@ fn edit_command(runtime : Runtime) -> @discord.Command[@model.Message] {
         message.embeds[0].description is Some(description) else {
         return @discord.CommandReply::message(
           content="That message has no editable translation.",
+          ephemeral=true,
+        )
+      }
+      guard description.length() <= MODAL_TEXT_LIMIT else {
+        return @discord.CommandReply::message(
+          content="That translation is too long to edit.",
           ephemeral=true,
         )
       }

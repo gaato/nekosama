@@ -196,10 +196,15 @@ fn pick_command() -> @discord.Command[@model.RoleId] {
         Some(user) => "<@\{user.id}>"
         None => "The selected member has no user data."
       }
+      // Embed titles do not render mentions, so show the resolved role name.
+      let role_name = match ctx.raw().options.resolved_role(role) {
+        Some(resolved) => resolved.name
+        None => "the role"
+      }
       ctx.edit_original(
         embeds=[
           @model.Embed(
-            title="Picked a random member from <@&\{role}>",
+            title="Picked a random member from \{role_name}",
             color=0xB190FC,
             fields=[
               @model.EmbedField(

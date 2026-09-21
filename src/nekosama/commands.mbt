@@ -309,4 +309,5 @@ pub fn register_commands(app : @discord.App, runtime : Runtime) -> Unit {
   app.command(send_agree_button_command())
   register_agree_handler(app, runtime)
   app.command(config_command(runtime))
+  register_member_tools(app, runtime)
 }

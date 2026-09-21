@@ -10,6 +10,12 @@ import {
   "moonbitlang/core/env",
   "moonbitlang/core/json",
   "moonbitlang/core/random",
+  "moonbitlang/core/string",
 }
 
 supported_targets = "native"
+
+import {
+  "gaato/discord/framework",
+  "gaato/discord/interaction",
+} for "wbtest"

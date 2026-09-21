@@ -191,53 +191,91 @@ fn delete_command(runtime : Runtime) -> @discord.Command[@model.Message] {
   @discord.message_command(
     name="Delete",
     handler=Immediate((ctx, message) => {
-      guard runtime.is_own_message(message) else {
-        return @discord.CommandReply::message(
-          content="You can only delete messages sent by me.",
-          ephemeral=true,
-        )
-      }
-      ctx.app().http().ref_of_message(message).delete()
-      @discord.CommandReply::message(content="Deleted!", ephemeral=true)
+      Message(delete_translation(runtime, ctx.app().http(), message))
     }),
   )
+}
+
+///|
+async fn delete_translation(
+  runtime : Runtime,
+  client : @discord.Client,
+  message : @model.Message,
+) -> @discord.InitialResponse {
+  guard runtime.is_own_message(message) else {
+    return @discord.InitialResponse::message(
+      content="You can only delete messages sent by me.",
+      ephemeral=true,
+    )
+  }
+  client.ref_of_message(message).delete()
+  @discord.InitialResponse::message(content="Deleted!", ephemeral=true)
 }
 
 ///|
 fn edit_command(runtime : Runtime) -> @discord.Command[@model.Message] {
   @discord.message_command(
     name="Edit",
-    handler=Immediate((_, message) => {
-      guard runtime.is_own_message(message) else {
-        return @discord.CommandReply::message(
-          content="You can only edit messages sent by me.",
-          ephemeral=true,
-        )
+    handler=Immediate((_, message) => edit_translation(runtime, message)),
+  )
+}
+
+///|
+fn edit_translation(
+  runtime : Runtime,
+  message : @model.Message,
+) -> @discord.CommandReply {
+  guard runtime.is_own_message(message) else {
+    return @discord.CommandReply::message(
+      content="You can only edit messages sent by me.",
+      ephemeral=true,
+    )
+  }
+  guard !message.embeds.is_empty() &&
+    message.embeds[0].description is Some(description) else {
+    return @discord.CommandReply::message(
+      content="That message has no editable translation.",
+      ephemeral=true,
+    )
+  }
+  guard description.length() <= MODAL_TEXT_LIMIT else {
+    return @discord.CommandReply::message(
+      content="That translation is too long to edit.",
+      ephemeral=true,
+    )
+  }
+  let handle = edit_modal().show(state="\{message.channel_id}/\{message.id}", values={
+    "translation": description,
+  }) catch {
+    _ =>
+      return @discord.CommandReply::message(
+        content="The editor could not be opened.",
+        ephemeral=true,
+      )
+  }
+  ShowModal(handle)
+}
+
+///|
+fn translation_request_error(content : String) -> String? {
+  if is_blank(content) {
+    Some("翻訳するテキストがありません。 Nothing to translate.")
+  } else {
+    None
+  }
+}
+
+///|
+fn translate_command(runtime : Runtime) -> @discord.Command[@model.Message] {
+  @discord.message_command(
+    name="Translate",
+    handler=Deferred(ephemeral=true, (ctx, message) => {
+      if translation_request_error(message.content) is Some(content) {
+        ctx.edit_original(content~) |> ignore
+        return
       }
-      guard !message.embeds.is_empty() &&
-        message.embeds[0].description is Some(description) else {
-        return @discord.CommandReply::message(
-          content="That message has no editable translation.",
-          ephemeral=true,
-        )
-      }
-      guard description.length() <= MODAL_TEXT_LIMIT else {
-        return @discord.CommandReply::message(
-          content="That translation is too long to edit.",
-          ephemeral=true,
-        )
-      }
-      let handle = edit_modal().show(
-        state="\{message.channel_id}/\{message.id}",
-        values={ "translation": description },
-      ) catch {
-        _ =>
-          return @discord.CommandReply::message(
-            content="The editor could not be opened.",
-            ephemeral=true,
-          )
-      }
-      ShowModal(handle)
+      let translated = runtime.translate(message.content)
+      ctx.edit_original(embeds=[translation_embed(translated)]) |> ignore
     }),
   )
 }
@@ -259,11 +297,7 @@ fn parse_message_location(
 
 ///|
 fn interaction_display_name(ctx : @discord.ModalImmediateCtx) -> String {
-  match ctx.interaction().guild_member {
-    Some(guild_member) => member_display_name(guild_member)
-    None =>
-      @model.flatten(ctx.user().global_name).unwrap_or(ctx.user().username)
-  }
+  member_tools_display_name(ctx.user(), ctx.interaction().guild_member)
 }
 
 ///|
@@ -299,7 +333,14 @@ fn register_edit_modal(app : @discord.App, runtime : Runtime) -> Unit {
         ..message.embeds[0],
         description: Some(form.translation),
         footer: Some(
-          @model.EmbedFooter("Edited by \{interaction_display_name(ctx)}"),
+          @model.EmbedFooter(
+            "Edited by \{interaction_display_name(ctx)}",
+            icon_url=member_tools_avatar_url(
+              ctx.user(),
+              ctx.interaction().guild_id,
+              ctx.interaction().guild_member,
+            ),
+          ),
         ),
       }
       message_ref.edit(embeds=[embed]) |> ignore

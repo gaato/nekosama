@@ -31,6 +31,10 @@ pub async fn ConfigStore::load(path : String) -> ConfigStore {
   let store = ConfigStore(path)
   if @fs.exists(path) {
     store.replace_with(@json.parse(@fs.read_file(path).text()))
+  } else {
+    // Write now so a data directory the bot cannot write to stops it at
+    // startup, not at the first setting change.
+    store.save()
   }
   store
 }

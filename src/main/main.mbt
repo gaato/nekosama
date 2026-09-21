@@ -47,12 +47,14 @@ async fn main {
   @signal.set_global_cancellation_signals([SIGINT, SIGTERM])
   @async.handle_cancellation(() => {
     let token = @env.get_env_var("DISCORD_TOKEN").unwrap_or("")
+    let config = @nekosama.ConfigStore::load(@nekosama.config_path())
     let runtime = @nekosama.Runtime(
       @env.get_env_var("OPENAI_API_KEY").unwrap_or(""),
+      config,
     )
     let app = @discord.App()
     app.command(ping_command())
-    @nekosama.register_commands(app)
+    @nekosama.register_commands(app, runtime)
     @nekosama.register_translation_commands(app, runtime)
     let bot = @discord.Bot(
       app,

@@ -18,10 +18,14 @@ pub struct Runtime {
   cache : @cache.InMemoryCache
   translations : LimitedSizeMap[@model.MessageId, TranslationRecord]
   bot_user_id : Ref[@model.UserId?]
+  config : ConfigStore
 }
 
 ///|
-pub fn Runtime::Runtime(openai_api_key : String) -> Runtime {
+pub fn Runtime::Runtime(
+  openai_api_key : String,
+  config : ConfigStore,
+) -> Runtime {
   {
     openai: @openai.Client(openai_api_key),
     // messages=true keeps recent revisions so MessageUpdateEvent::is_edit
@@ -29,6 +33,7 @@ pub fn Runtime::Runtime(openai_api_key : String) -> Runtime {
     cache: @cache.InMemoryCache(resources=@cache.CacheResources(messages=true)),
     translations: LimitedSizeMap(100),
     bot_user_id: Ref(None),
+    config,
   }
 }
 
@@ -84,6 +89,10 @@ async fn Runtime::handle_translation(
   event : @model.MessageCreateEvent,
   channel : @model.Channel,
 ) -> Unit {
+  if event.guild_id is Some(guild_id) &&
+    !self.config.get_bool(guild_id, AUTO_TRANSLATE_KEY, default=true) {
+    return
+  }
   if channel_disables_translation(channel) {
     return
   }

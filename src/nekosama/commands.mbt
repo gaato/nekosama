@@ -258,7 +258,14 @@ fn send_agree_button_command() -> @discord.Command[Unit] {
 }
 
 ///|
-fn member_role_id() -> @model.RoleId? {
+/// `/config member-role` wins; `MEMBER_ROLE_ID` is the fallback.
+fn member_role_id(
+  runtime : Runtime,
+  guild_id : @model.GuildId,
+) -> @model.RoleId? {
+  if runtime.config.get_id(guild_id, MEMBER_ROLE_KEY) is Some(role_id) {
+    return Some(role_id)
+  }
   match @env.get_env_var("MEMBER_ROLE_ID") {
     Some(raw) => Some(@model.Id::parse(raw)) catch { _ => None }
     None => None
@@ -273,13 +280,15 @@ fn agree_route() -> @discord.ComponentRoute[Unit] {
 }
 
 ///|
-fn register_agree_handler(app : @discord.App) -> Unit {
+fn register_agree_handler(app : @discord.App, runtime : Runtime) -> Unit {
   app.on_component(
     agree_route(),
     DeferredMessage(ephemeral=true, (ctx, _) => {
       let guild = ctx.guild_scope()
-      guard member_role_id() is Some(role_id) else {
-        ctx.edit_original(content="MEMBER_ROLE_ID is not configured correctly.")
+      guard member_role_id(runtime, guild.guild_id) is Some(role_id) else {
+        ctx.edit_original(
+          content="ロールが設定されていません。管理者は `/config member-role` で設定してください。",
+        )
         |> ignore
         return
       }
@@ -294,9 +303,10 @@ fn register_agree_handler(app : @discord.App) -> Unit {
 }
 
 ///|
-pub fn register_commands(app : @discord.App) -> Unit {
+pub fn register_commands(app : @discord.App, runtime : Runtime) -> Unit {
   app.command(role_command())
   app.command(pick_command())
   app.command(send_agree_button_command())
-  register_agree_handler(app)
+  register_agree_handler(app, runtime)
+  app.command(config_command(runtime))
 }

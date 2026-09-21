@@ -6,7 +6,7 @@ readme = "README.md"
 
 repository = "https://github.com/gaato/nekosama"
 
-license = "MIT"
+license = "BlueOak-1.0.0"
 
 description = "A Discord bot built with MoonBit and discord.mbt."
 

@@ -1,6 +1,7 @@
 import {
   "gaato/discord",
   "gaato/discord/cache",
+  "gaato/discord/http",
   "gaato/discord/model",
   "gaato/discord/util",
   "gaato/nekosama/openai",

@@ -64,6 +64,7 @@ async fn main {
     )
     runtime.attach_cache(bot)
     @nekosama.register_translation_events(bot, runtime)
+    @nekosama.register_events(app, bot, runtime)
     bot.on(@discord.Events::ready(), (_, ready) => {
       runtime.set_bot_user_id(ready.user.id)
       println("[bot] ready as \{ready.user.username}")

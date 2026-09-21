@@ -55,7 +55,12 @@ fn bot_intents() -> @model.Intents {
 }
 
 ///|
+/// Logs must reach the container's log stream as they happen, not at exit.
+extern "c" fn line_buffer_stdout() = "nekosama_line_buffer_stdout"
+
+///|
 async fn main {
+  line_buffer_stdout()
   @signal.set_global_cancellation_signals([SIGINT, SIGTERM])
   @async.handle_cancellation(() => {
     let token = discord_token()

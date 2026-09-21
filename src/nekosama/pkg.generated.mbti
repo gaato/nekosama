@@ -25,6 +25,8 @@ pub fn register_commands(@app.App, Runtime) -> Unit
 
 pub fn register_events(@app.App, @bot.Bot, Runtime) -> Unit
 
+pub fn register_forums(@app.App, @bot.Bot, Runtime) -> Unit
+
 pub fn register_translation_commands(@app.App, Runtime) -> Unit
 
 pub fn register_translation_events(@bot.Bot, Runtime) -> Unit

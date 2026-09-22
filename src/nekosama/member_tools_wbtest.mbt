@@ -169,27 +169,23 @@ test "display avatars use guild then user then modern or legacy defaults" {
 }
 
 ///|
-test "colon IDs require raw registration in discord 0.3.1" {
+test "colon IDs validate as typed routes since discord 0.4.0" {
+  // The legacy menu IDs contain the state separator. discord 0.3.1 rejected
+  // them as typed routes, which is why the handlers are registered raw; 0.4.0
+  // accepts them and only rejects ids nested at a ':' boundary.
   for id in [SCHEDULE_CUSTOM_ID, ROLE_MENU_CUSTOM_ID] {
     let route = @discord.component_route(
       id~,
       state=@discord.CustomIdCodec::unit(),
     )
     assert_eq(route.custom_id(()), id)
-    // Encoding and decoding succeed, but application validation rejects it.
     route.decode(id)
     let app = @discord.App()
     app.on_component(
       route,
       Immediate((_, _) => @discord.ComponentReply::message(content="unused")),
     )
-    try app.validate() catch {
-      @discord.AppConfigError::InvalidRouteId(custom_id~, ..) =>
-        assert_eq(custom_id, id)
-      error => fail("unexpected validation error: \{Repr(error)}")
-    } noraise {
-      _ => fail("expected the typed colon route to be rejected")
-    }
+    app.validate()
   }
 }
 

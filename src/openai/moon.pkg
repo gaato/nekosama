@@ -1,6 +1,15 @@
 import {
-  "moonbitlang/async/http" @ahttp,
-  "moonbitlang/core/json",
+  "gaato/http",
+  "gaato/http-async" @transport,
+  "gaato/openai" @llm,
 }
+
+import {
+  "gaato/http",
+  "gaato/http/mock",
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+} for "test"
 
 supported_targets = "native"

@@ -61,10 +61,10 @@ fn thread_chat_messages(
 ) -> Array[@openai.ChatMessage] {
   history.map(message => {
     let message = resolved_thread_starter(message)
-    {
-      role: chat_role(message.author.id, bot_user_id),
-      content: remove_user_mentions(message.content),
-    }
+    @openai.message(
+      chat_role(message.author.id, bot_user_id),
+      remove_user_mentions(message.content),
+    )
   })
 }
 
@@ -120,7 +120,7 @@ async fn Runtime::handle_owned_thread(
   let response = channel.with_typing(() => {
     let history = channel.messages(page_size=30).collect(max=30).rev()
     let messages : Array[@openai.ChatMessage] = [
-      { role: "system", content: THREAD_CHAT_PROMPT, },
+      @openai.ChatMessage::system(THREAD_CHAT_PROMPT),
     ]
     messages.push_iter(thread_chat_messages(history, bot_user_id).iter())
     self.openai.chat_completion(chat_model(), messages)
@@ -142,10 +142,9 @@ async fn Runtime::handle_mention(
     .channel_ref(event.message.channel_id)
     .with_typing(() => {
       self.openai.chat_completion(chat_model(), [
-        {
-          role: "user",
-          content: remove_bot_mention(event.message.content, bot_user_id),
-        },
+        @openai.ChatMessage::user(
+          remove_bot_mention(event.message.content, bot_user_id),
+        ),
       ])
     })
   let destination = if is_thread_type(Some(channel_type)) {

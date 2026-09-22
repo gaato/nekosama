@@ -69,8 +69,8 @@ async fn Runtime::translate(self : Runtime, content : String) -> String {
   self.openai.chat_completion(
     translation_model(),
     [
-      { role: "system", content: TRANSLATION_PROMPT, },
-      { role: "user", content, },
+      @openai.ChatMessage::system(TRANSLATION_PROMPT),
+      @openai.ChatMessage::user(content),
     ],
     reasoning_effort=Off,
   )

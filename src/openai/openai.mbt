@@ -1,27 +1,42 @@
 ///|
-pub(all) struct ChatMessage {
-  role : String
-  content : String
-} derive(Debug, Eq)
+/// The chat message type of `gaato/openai`, so the bot builds messages with
+/// `ChatMessage::system` / `user` / `assistant`.
+pub using @llm {type ChatMessage}
 
 ///|
 pub suberror OpenAIError {
-  Http(status~ : Int, body~ : String)
   InvalidResponse(String)
 } derive(Debug)
 
 ///|
+/// A thin wrapper over `gaato/openai` with the two things this bot needs:
+/// one chat completion call that returns the text, and a reasoning-effort
+/// switch. Transport failures, HTTP errors and rate limits surface as
+/// `@runtime.SdkError`, which carries the status code.
 pub struct Client {
-  api_key : String
-  base_url : String
+  priv api : @llm.OpenAI
 }
 
 ///|
+/// `transport` defaults to a pooled `AsyncTransport`; tests pass a
+/// `FakeTransport`.
 pub fn Client::Client(
   api_key : String,
-  base_url? : String = "https://api.openai.com",
+  base_url? : String = "https://api.openai.com/v1",
+  transport? : &@http.Transport,
 ) -> Client {
-  { api_key, base_url, }
+  let transport : &@http.Transport = match transport {
+    Some(transport) => transport
+    None => @transport.AsyncTransport::new()
+  }
+  {
+    api: @llm.OpenAI::new(
+      api_key~,
+      transport,
+      @transport.AsyncClock::new(),
+      base_url~,
+    ),
+  }
 }
 
 ///|
@@ -37,7 +52,7 @@ pub(all) enum ReasoningEffort {
 } derive(Debug, Eq)
 
 ///|
-fn ReasoningEffort::wire_name(self : ReasoningEffort) -> String {
+pub fn ReasoningEffort::wire_name(self : ReasoningEffort) -> String {
   match self {
     Off => "none"
     Low => "low"
@@ -49,47 +64,14 @@ fn ReasoningEffort::wire_name(self : ReasoningEffort) -> String {
 }
 
 ///|
-pub fn chat_request_json(
-  model : String,
-  messages : Array[ChatMessage],
-  reasoning_effort? : ReasoningEffort,
-) -> Json {
-  let request : Map[String, Json] = {
-    "model": model,
-    "messages": messages.map(message => {
-      "role": message.role,
-      "content": message.content,
-    }),
+/// A message with a role decided at runtime ("user" or "assistant" from the
+/// thread history); anything else is treated as a user message.
+pub fn message(role : String, content : String) -> ChatMessage {
+  match role {
+    "system" => ChatMessage::system(content)
+    "assistant" => ChatMessage::assistant(content)
+    _ => ChatMessage::user(content)
   }
-  if reasoning_effort is Some(effort) {
-    request["reasoning_effort"] = Json::string(effort.wire_name())
-  }
-  Json::object(request)
-}
-
-///|
-priv struct CompletionMessage {
-  content : String?
-} derive(FromJson)
-
-///|
-priv struct CompletionChoice {
-  message : CompletionMessage
-} derive(FromJson)
-
-///|
-priv struct CompletionResponse {
-  choices : Array[CompletionChoice]
-} derive(FromJson)
-
-///|
-pub fn parse_chat_response(body : String) -> String raise {
-  let response : CompletionResponse = @json.from_json(@json.parse(body))
-  guard !response.choices.is_empty() &&
-    response.choices[0].message.content is Some(content) else {
-    raise InvalidResponse("response has no text completion")
-  }
-  content
 }
 
 ///|
@@ -99,17 +81,15 @@ pub async fn Client::chat_completion(
   messages : Array[ChatMessage],
   reasoning_effort? : ReasoningEffort,
 ) -> String {
-  let headers : Map[@ahttp.CaseInsensitiveString, String] = {
-    "Authorization": "Bearer \{self.api_key}",
-    "Content-Type": "application/json",
+  let completion = self.api.chat_completion(
+    @llm.ChatRequest::new(
+      model~,
+      messages~,
+      reasoning_effort?=reasoning_effort.map(ReasoningEffort::wire_name),
+    ),
+  )
+  guard !completion.text.is_empty() else {
+    raise InvalidResponse("response has no text completion")
   }
-  let client = @ahttp.Client(self.base_url, headers~)
-  defer client.close()
-  let request_body = chat_request_json(model, messages, reasoning_effort?).stringify()
-  let response = client.post("/v1/chat/completions", request_body)
-  let response_body = client.read_all().text()
-  guard response.code is (200..<300) else {
-    raise Http(status=response.code, body=response_body)
-  }
-  parse_chat_response(response_body)
+  completion.text
 }

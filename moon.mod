@@ -20,6 +20,10 @@ warnings = "-implicit_impl_as_method"
 
 import {
   "gaato/discord@0.3.1",
+  "gaato/http@0.1.0",
+  "gaato/http-async@0.1.0",
+  "gaato/openai@0.1.0",
+  "gaato/sdk-runtime@0.1.0",
   "moonbitlang/async@0.22.1",
   "moonbitlang/x@0.5.5",
 }

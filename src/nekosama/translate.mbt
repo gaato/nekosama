@@ -43,7 +43,7 @@ pub fn Runtime::Runtime(
 }
 
 ///|
-pub fn Runtime::attach_cache(self : Runtime, bot : @discord.Bot) -> Unit {
+pub fn Runtime::attach_cache(self : Runtime, bot : @discord.BotBuilder) -> Unit {
   bot.attach_cache(self.cache)
 }
 
@@ -175,10 +175,14 @@ priv struct EditForm {
 }
 
 ///|
-fn edit_modal() -> @discord.Modal[EditForm] {
+fn edit_modal() -> @discord.Modal[
+  (@model.ChannelId, @model.MessageId),
+  EditForm,
+] {
   @discord.modal(
     custom_id=EDIT_MODAL_ID,
     title="Edit",
+    state=message_location_codec(),
     fields=@discord.ModalFields::map1(
       @discord.text_field(
         custom_id="translation",
@@ -196,7 +200,7 @@ fn delete_command(runtime : Runtime) -> @discord.Command[@model.Message] {
   @discord.message_command(
     name="Delete",
     handler=Immediate((ctx, message) => {
-      Message(delete_translation(runtime, ctx.app().http(), message))
+      delete_translation(runtime, ctx.app().http(), message)
     }),
   )
 }
@@ -206,15 +210,15 @@ async fn delete_translation(
   runtime : Runtime,
   client : @discord.Client,
   message : @model.Message,
-) -> @discord.InitialResponse {
+) -> @discord.CommandReply {
   guard runtime.is_own_message(message) else {
-    return @discord.InitialResponse::message(
+    return @discord.CommandReply::message(
       content="You can only delete messages sent by me.",
       ephemeral=true,
     )
   }
   client.ref_of_message(message).delete()
-  @discord.InitialResponse::message(content="Deleted!", ephemeral=true)
+  @discord.CommandReply::message(content="Deleted!", ephemeral=true)
 }
 
 ///|
@@ -249,7 +253,7 @@ fn edit_translation(
       ephemeral=true,
     )
   }
-  let handle = edit_modal().show(state="\{message.channel_id}/\{message.id}", values={
+  let handle = edit_modal().show((message.channel_id, message.id), values={
     "translation": description,
   }) catch {
     _ =>
@@ -286,6 +290,25 @@ fn translate_command(runtime : Runtime) -> @discord.Command[@model.Message] {
 }
 
 ///|
+/// The edit modal's state keeps the `<channel id>/<message id>` wire format.
+fn message_location_codec() -> @discord.CustomIdCodec[
+  (@model.ChannelId, @model.MessageId),
+] {
+  @discord.CustomIdCodec::custom(
+    encode=location => "\{location.0}/\{location.1}",
+    decode=state => {
+      match parse_message_location(state) {
+        Some(location) => location
+        None =>
+          raise @discord.HandlerError::Malformed(
+            reason="edit modal state is not a message location: \{state}",
+          )
+      }
+    },
+  )
+}
+
+///|
 fn parse_message_location(
   state : String,
 ) -> (@model.ChannelId, @model.MessageId)? {
@@ -306,30 +329,21 @@ fn interaction_display_name(ctx : @discord.ModalImmediateCtx) -> String {
 }
 
 ///|
-fn register_edit_modal(app : @discord.App, runtime : Runtime) -> Unit {
+fn register_edit_modal(app : @discord.AppBuilder, runtime : Runtime) -> Unit {
   app.on_modal(
     edit_modal(),
-    Immediate((ctx, form) => {
-      let location = match ctx.state() {
-        Some(state) => parse_message_location(state)
-        None => None
-      }
-      guard location is Some((channel_id, message_id)) else {
-        return @discord.InitialResponse::message(
-          content="The edited message is unavailable.",
-          ephemeral=true,
-        )
-      }
+    Immediate((ctx, location, form) => {
+      let (channel_id, message_id) = location
       let message_ref = ctx.app().http().message_ref(channel_id, message_id)
       let message = message_ref.fetch()
       guard runtime.is_own_message(message) else {
-        return @discord.InitialResponse::message(
+        return @discord.ModalReply::message(
           content="You can only edit messages sent by me.",
           ephemeral=true,
         )
       }
       guard !message.embeds.is_empty() else {
-        return @discord.InitialResponse::message(
+        return @discord.ModalReply::message(
           content="That message has no editable translation.",
           ephemeral=true,
         )
@@ -349,14 +363,14 @@ fn register_edit_modal(app : @discord.App, runtime : Runtime) -> Unit {
         ),
       }
       message_ref.edit(embeds=[embed]) |> ignore
-      @discord.InitialResponse::message(content="Edited!", ephemeral=true)
+      @discord.ModalReply::message(content="Edited!", ephemeral=true)
     }),
   )
 }
 
 ///|
 pub fn register_translation_commands(
-  app : @discord.App,
+  app : @discord.AppBuilder,
   runtime : Runtime,
 ) -> Unit {
   app.command(delete_command(runtime))

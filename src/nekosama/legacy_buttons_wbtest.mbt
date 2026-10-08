@@ -5,7 +5,7 @@ test "legacy buttons keep exact Python custom IDs" {
   legacy_delete_route().decode("delete")
   legacy_edit_route().decode("edit")
   try legacy_edit_route().decode("edit:unexpected") catch {
-    @discord.HandlerError::InvalidArgument(_) => ()
+    @discord.HandlerError::Malformed(..) => ()
     error => fail("unexpected error: \{Repr(error)}")
   } noraise {
     _ => fail("legacy buttons must not accept arbitrary state")
@@ -20,7 +20,7 @@ async test "old edit button opens the shared modal with the translation prefille
     embeds: [translation_embed("翻訳")],
   }
   runtime.set_bot_user_id(message.author.id)
-  let app = @discord.App()
+  let app = @discord.AppBuilder()
   register_legacy_buttons(app, runtime)
   let reply = tools_capture_reply(app, tools_test_component("edit", message))
   guard reply
@@ -64,7 +64,7 @@ async test "legacy edit rejects missing and overlong descriptions before opening
     ),
   ]
   for (embeds, content) in cases {
-    let app = @discord.App()
+    let app = @discord.AppBuilder()
     register_legacy_buttons(app, runtime)
     json_inspect(
       tools_capture_reply(
@@ -99,7 +99,7 @@ async test "legacy buttons share the commands' bot-ownership checks" {
       ("delete", "You can only delete messages sent by me."),
       ("edit", "You can only edit messages sent by me."),
     ] {
-    let app = @discord.App()
+    let app = @discord.AppBuilder()
     register_legacy_buttons(app, runtime)
     json_inspect(
       tools_capture_reply(app, tools_test_component(id, tools_test_message())),

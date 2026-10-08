@@ -9,11 +9,17 @@ fn legacy_edit_route() -> @discord.ComponentRoute[Unit] {
 }
 
 ///|
-fn register_legacy_buttons(app : @discord.App, runtime : Runtime) -> Unit {
+fn register_legacy_buttons(
+  app : @discord.AppBuilder,
+  runtime : Runtime,
+) -> Unit {
   app.on_component(
     legacy_delete_route(),
     Immediate((ctx, _) => {
-      Message(delete_translation(runtime, ctx.app().http(), ctx.message()))
+      match delete_translation(runtime, ctx.app().http(), ctx.message()) {
+        Message(response) => Message(response)
+        ShowModal(handle) => ShowModal(handle)
+      }
     }),
   )
   app.on_component(

@@ -59,7 +59,18 @@ test "edit modal state keeps full snowflakes and rejects malformed locations" {
       "", "1", "1/2/3", "/2", "1/", "bad/2", "1/bad", "18446744073709551616/2",
     ] {
     assert_true(parse_message_location(state) is None)
+    try message_location_codec().decode(state) catch {
+      @discord.HandlerError::Malformed(..) => ()
+      error => fail("unexpected error: \{Repr(error)}")
+    } noraise {
+      _ => fail("the edit modal must not accept \{state}")
+    }
   }
+  let codec = message_location_codec()
+  assert_eq(
+    codec.encode(codec.decode("1525156408767676466/1525156408767676499")),
+    "1525156408767676466/1525156408767676499",
+  )
 }
 
 ///|
@@ -71,7 +82,7 @@ async test "Delete and Edit commands retain ownership replies after sharing lega
       ("Delete", "You can only delete messages sent by me."),
       ("Edit", "You can only edit messages sent by me."),
     ] {
-    let app = @discord.App()
+    let app = @discord.AppBuilder()
     register_translation_commands(app, runtime)
     json_inspect(
       tools_capture_reply(
@@ -91,7 +102,7 @@ async test "Edit command and legacy button produce the same modal" {
     embeds: [translation_embed("translation")],
   }
   runtime.set_bot_user_id(message.author.id)
-  let app = @discord.App()
+  let app = @discord.AppBuilder()
   register_translation_commands(app, runtime)
   register_legacy_buttons(app, runtime)
   let from_command = tools_capture_reply(

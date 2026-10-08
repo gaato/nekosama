@@ -187,7 +187,7 @@ async fn Runtime::handle_message_create(
 
 ///|
 pub fn register_translation_events(
-  bot : @discord.Bot,
+  bot : @discord.BotBuilder,
   runtime : Runtime,
 ) -> Unit {
   bot.on(@discord.Events::message_create(), (ctx, event) => {

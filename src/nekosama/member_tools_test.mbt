@@ -4,10 +4,10 @@ test "member tools validate alongside all existing commands" {
     "unused",
     @nekosama.ConfigStore("unused.json"),
   )
-  let app = @discord.App()
+  let app = @discord.AppBuilder()
   @nekosama.register_commands(app, runtime)
   @nekosama.register_translation_commands(app, runtime)
-  app.validate()
+  app.build() |> ignore
 }
 
 ///|
@@ -16,7 +16,7 @@ test "member tools can be installed independently" {
     "unused",
     @nekosama.ConfigStore("unused.json"),
   )
-  let app = @discord.App()
+  let app = @discord.AppBuilder()
   @nekosama.register_member_tools(app, runtime)
-  app.validate()
+  app.build() |> ignore
 }

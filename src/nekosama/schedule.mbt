@@ -209,7 +209,7 @@ fn schedule_command(_runtime : Runtime) -> @discord.Command[ScheduleArgs] {
 }
 
 ///|
-fn register_schedule_handler(app : @discord.App) -> Unit {
+fn register_schedule_handler(app : @discord.AppBuilder) -> Unit {
   // App::validate rejects ':' in typed route ids in discord.mbt 0.3.1.
   app.on_component_raw(prefix=SCHEDULE_CUSTOM_ID, ctx => {
     guard ctx.data.custom_id == SCHEDULE_CUSTOM_ID else { return }
@@ -217,8 +217,8 @@ fn register_schedule_handler(app : @discord.App) -> Unit {
       raise @discord.HandlerError::GuildOnly
     }
     guard ctx.message().embeds.get(0) is Some(embed) else {
-      raise @discord.HandlerError::InvalidArgument(
-        "The schedule embed is unavailable.",
+      raise @discord.HandlerError::Malformed(
+        reason="the schedule message has no embed",
       )
     }
     ctx.update_message(embeds=[

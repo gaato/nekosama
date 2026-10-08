@@ -413,12 +413,19 @@ fn event_command(runtime : Runtime) -> @discord.Command[EventForm] {
 }
 
 ///|
-pub fn register_events(
-  app : @discord.App,
-  bot : @discord.Bot,
+pub fn register_event_commands(
+  app : @discord.AppBuilder,
   runtime : Runtime,
 ) -> Unit {
   app.command(event_command(runtime))
+}
+
+///|
+/// The gateway half of `/event`: tracks guilds and announces due events.
+pub fn register_event_notifier(
+  bot : @discord.BotBuilder,
+  runtime : Runtime,
+) -> Unit {
   let roster : GuildRoster = { ids: Map([]), }
   bot.on(@discord.Events::ready(), (_, ready) => {
     for guild in ready.guilds {

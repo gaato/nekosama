@@ -367,12 +367,19 @@ async fn auto_tag_new_post(
 }
 
 ///|
-pub fn register_forums(
-  app : @discord.App,
-  bot : @discord.Bot,
+pub fn register_forum_commands(
+  app : @discord.AppBuilder,
   runtime : Runtime,
 ) -> Unit {
   app.command(forum_index_command(runtime))
+}
+
+///|
+/// The gateway half of `/forum-index`: refreshes indexes as threads change.
+pub fn register_forum_events(
+  bot : @discord.BotBuilder,
+  runtime : Runtime,
+) -> Unit {
   let queue : RefreshQueue = { pending: Map([]), }
   bot.on(@discord.Events::thread_create(), (ctx, event) => {
     let thread = event.channel

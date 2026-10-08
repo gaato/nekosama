@@ -280,7 +280,7 @@ fn agree_route() -> @discord.ComponentRoute[Unit] {
 }
 
 ///|
-fn register_agree_handler(app : @discord.App, runtime : Runtime) -> Unit {
+fn register_agree_handler(app : @discord.AppBuilder, runtime : Runtime) -> Unit {
   app.on_component(
     agree_route(),
     DeferredMessage(ephemeral=true, (ctx, _) => {
@@ -303,7 +303,7 @@ fn register_agree_handler(app : @discord.App, runtime : Runtime) -> Unit {
 }
 
 ///|
-pub fn register_commands(app : @discord.App, runtime : Runtime) -> Unit {
+pub fn register_commands(app : @discord.AppBuilder, runtime : Runtime) -> Unit {
   app.command(role_command())
   app.command(pick_command())
   app.command(send_agree_button_command())

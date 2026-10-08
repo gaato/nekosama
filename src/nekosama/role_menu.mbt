@@ -238,8 +238,9 @@ fn send_role_menu_command(runtime : Runtime) -> @discord.Command[RoleMenuArgs] {
       let all_roles = client.guild_ref(guild.guild_id).roles()
       let roles = args.roles.map(id => {
         guard all_roles.iter().find_first(role => role.id == id) is Some(role) else {
-          raise @discord.HandlerError::InvalidArgument(
-            "The selected role is unavailable.",
+          raise @discord.HandlerError::InvalidInput(
+            name=None,
+            message="The selected role is unavailable.",
           )
         }
         role
@@ -251,8 +252,9 @@ fn send_role_menu_command(runtime : Runtime) -> @discord.Command[RoleMenuArgs] {
       let bot_member = client.member_ref(guild.guild_id, bot_id).fetch()
       guard member_top_role(all_roles, bot_member.roles, guild.guild_id)
         is Some(top) else {
-        raise @discord.HandlerError::InvalidArgument(
-          "The bot's top role is unavailable.",
+        raise @discord.HandlerError::UserMessage(
+          message="The bot's top role is unavailable.",
+          ephemeral=true,
         )
       }
       if role_menu_hierarchy_error(roles, top, guild.guild_id) is Some(content) {
@@ -269,7 +271,10 @@ fn send_role_menu_command(runtime : Runtime) -> @discord.Command[RoleMenuArgs] {
 }
 
 ///|
-fn register_role_menu_handler(app : @discord.App, runtime : Runtime) -> Unit {
+fn register_role_menu_handler(
+  app : @discord.AppBuilder,
+  runtime : Runtime,
+) -> Unit {
   // The legacy id contains ':', which typed route validation rejects in 0.3.1.
   app.on_component_raw(prefix=ROLE_MENU_CUSTOM_ID, ctx => {
     guard ctx.data.custom_id == ROLE_MENU_CUSTOM_ID else { return }

@@ -40,7 +40,10 @@ fn member_tools_avatar_url(
 
 ///|
 /// Register member commands and the persistent components posted by either bot.
-pub fn register_member_tools(app : @discord.App, runtime : Runtime) -> Unit {
+pub fn register_member_tools(
+  app : @discord.AppBuilder,
+  runtime : Runtime,
+) -> Unit {
   app.command(absence_command(runtime))
   app.command(schedule_command(runtime))
   app.command(send_role_menu_command(runtime))

@@ -69,25 +69,27 @@ async fn main {
       @env.get_env_var("OPENAI_API_KEY").unwrap_or(""),
       config,
     )
-    let app = @discord.App()
+    let app = @discord.AppBuilder()
     app.command(ping_command())
     @nekosama.register_commands(app, runtime)
     @nekosama.register_translation_commands(app, runtime)
-    let bot = @discord.Bot(
-      app,
+    @nekosama.register_event_commands(app, runtime)
+    @nekosama.register_forum_commands(app, runtime)
+    let bot = @discord.BotBuilder(
+      app.build(),
       token~,
       intents=bot_intents(),
       sync=command_scope(),
     )
     runtime.attach_cache(bot)
     @nekosama.register_translation_events(bot, runtime)
-    @nekosama.register_events(app, bot, runtime)
-    @nekosama.register_forums(app, bot, runtime)
+    @nekosama.register_event_notifier(bot, runtime)
+    @nekosama.register_forum_events(bot, runtime)
     bot.on(@discord.Events::ready(), (_, ready) => {
       runtime.set_bot_user_id(ready.user.id)
       println("[bot] ready as \{ready.user.username}")
     })
-    bot.run()
+    bot.build().run()
   })
   |> ignore
   println("[bot] shutting down")

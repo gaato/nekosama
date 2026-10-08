@@ -79,7 +79,7 @@ fn tools_test_component(
 // Only initial callbacks are captured here. No bot, endpoint server, or REST
 // call is run; handlers tested with this helper must return before any I/O.
 async fn tools_capture_reply(
-  app : @discord.App,
+  app : @discord.AppBuilder,
   interaction : @model.Interaction,
 ) -> Json {
   let client = @discord.Client(
@@ -91,8 +91,9 @@ async fn tools_capture_reply(
   let framework = @framework.Framework(client, interaction.application_id)
   let errors : Array[String] = []
   app.error_policy((_, error) => errors.push("\{Repr(error)}"))
-  app.validate()
-  app.attach(framework, client~, application_id=interaction.application_id)
+  app
+  .build()
+  .attach(framework, client~, application_id=interaction.application_id)
   |> ignore
   let (gate, capture) = @framework.ResponseGate::capture(interaction)
   assert_true(framework.process_with(interaction, gate~))
@@ -180,18 +181,18 @@ test "colon IDs validate as typed routes since discord 0.4.0" {
     )
     assert_eq(route.custom_id(()), id)
     route.decode(id)
-    let app = @discord.App()
+    let app = @discord.AppBuilder()
     app.on_component(
       route,
       Immediate((_, _) => @discord.ComponentReply::message(content="unused")),
     )
-    app.validate()
+    app.build() |> ignore
   }
 }
 
 ///|
 async test "raw legacy menu IDs reach their handlers and ignore prefix siblings" {
-  let app = @discord.App()
+  let app = @discord.AppBuilder()
   let runtime = Runtime("unused", ConfigStore("unused.json"))
   register_schedule_handler(app)
   register_role_menu_handler(app, runtime)
@@ -200,7 +201,7 @@ async test "raw legacy menu IDs reach their handlers and ignore prefix siblings"
     guard error is @discord.HandlerError::GuildOnly else { raise error }
     errors.push("guild required")
   })
-  app.validate()
+  let built = app.build()
   let client = @discord.Client(
     "unused",
     base_url="http://127.0.0.1:1",
@@ -211,7 +212,7 @@ async test "raw legacy menu IDs reach their handlers and ignore prefix siblings"
     "1525156408767676800",
   )
   let framework = @framework.Framework(client, application_id)
-  app.attach(framework, client~, application_id~) |> ignore
+  built.attach(framework, client~, application_id~) |> ignore
   // No guild means the matched handler must fail before reaching any HTTP call.
   for id in [SCHEDULE_CUSTOM_ID, ROLE_MENU_CUSTOM_ID] {
     let interaction = tools_test_component(id, tools_test_message())

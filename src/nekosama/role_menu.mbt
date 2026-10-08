@@ -271,29 +271,38 @@ fn send_role_menu_command(runtime : Runtime) -> @discord.Command[RoleMenuArgs] {
 }
 
 ///|
+fn role_menu_route() -> @discord.ComponentRoute[Unit] {
+  @discord.component_route(
+    id=ROLE_MENU_CUSTOM_ID,
+    state=@discord.CustomIdCodec::unit(),
+  )
+}
+
+///|
 fn register_role_menu_handler(
   app : @discord.AppBuilder,
   runtime : Runtime,
 ) -> Unit {
-  // The legacy id contains ':', which typed route validation rejects in 0.3.1.
-  app.on_component_raw(prefix=ROLE_MENU_CUSTOM_ID, ctx => {
-    guard ctx.data.custom_id == ROLE_MENU_CUSTOM_ID else { return }
-    guard ctx.guild_scope() is Some(guild) else {
-      raise @discord.HandlerError::GuildOnly
-    }
-    let changes = role_menu_changes(
-      role_menu_option_ids(ctx.message().components.unwrap_or([])),
-      runtime.cache.roles(guild.guild_id).map(role => role.id),
-      guild.member.roles,
-      role_menu_ids(ctx.data.values.unwrap_or([])),
-    )
-    ctx.defer_response(ephemeral=true)
-    let member_ref = ctx.client.member_ref(guild.guild_id, ctx.user().id)
-    let content = apply_role_menu_changes(
-      changes,
-      add_role=role => member_ref.add_role(role, reason="Role menu"),
-      remove_role=role => member_ref.remove_role(role, reason="Role menu"),
-    )
-    ctx.edit_response(content~) |> ignore
-  })
+  app.on_component(
+    role_menu_route(),
+    DeferredMessage(ephemeral=true, (ctx, _) => {
+      let guild = ctx.guild_scope()
+      let changes = role_menu_changes(
+        role_menu_option_ids(ctx.message().components.unwrap_or([])),
+        runtime.cache.roles(guild.guild_id).map(role => role.id),
+        guild.member.roles,
+        role_menu_ids(ctx.values()),
+      )
+      let member_ref = ctx
+        .app()
+        .http()
+        .member_ref(guild.guild_id, ctx.user().id)
+      let content = apply_role_menu_changes(
+        changes,
+        add_role=role => member_ref.add_role(role, reason="Role menu"),
+        remove_role=role => member_ref.remove_role(role, reason="Role menu"),
+      )
+      ctx.edit_original(content~) |> ignore
+    }),
+  )
 }

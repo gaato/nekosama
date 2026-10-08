@@ -210,7 +210,9 @@ fn schedule_command(_runtime : Runtime) -> @discord.Command[ScheduleArgs] {
 
 ///|
 fn register_schedule_handler(app : @discord.AppBuilder) -> Unit {
-  // App::validate rejects ':' in typed route ids in discord.mbt 0.3.1.
+  // Raw because the vote updates the message as the initial response and then
+  // sends an ephemeral followup; a typed Immediate handler answers once, and
+  // DeferredUpdate would cost an extra edit per vote.
   app.on_component_raw(prefix=SCHEDULE_CUSTOM_ID, ctx => {
     guard ctx.data.custom_id == SCHEDULE_CUSTOM_ID else { return }
     guard ctx.guild_scope() is Some(_) else {

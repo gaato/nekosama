@@ -172,8 +172,8 @@ test "display avatars use guild then user then modern or legacy defaults" {
 ///|
 test "colon IDs validate as typed routes since discord 0.4.0" {
   // The legacy menu IDs contain the state separator. discord 0.3.1 rejected
-  // them as typed routes, which is why the handlers are registered raw; 0.4.0
-  // accepts them and only rejects ids nested at a ':' boundary.
+  // them as typed routes; 0.4.0 accepts them and only rejects ids nested at a
+  // ':' boundary, so ids already on posted messages keep routing.
   for id in [SCHEDULE_CUSTOM_ID, ROLE_MENU_CUSTOM_ID] {
     let route = @discord.component_route(
       id~,
@@ -191,7 +191,7 @@ test "colon IDs validate as typed routes since discord 0.4.0" {
 }
 
 ///|
-async test "raw legacy menu IDs reach their handlers and ignore prefix siblings" {
+async test "legacy menu IDs reach their handlers and ignore prefix siblings" {
   let app = @discord.AppBuilder()
   let runtime = Runtime("unused", ConfigStore("unused.json"))
   register_schedule_handler(app)
@@ -213,19 +213,39 @@ async test "raw legacy menu IDs reach their handlers and ignore prefix siblings"
   )
   let framework = @framework.Framework(client, application_id)
   built.attach(framework, client~, application_id~) |> ignore
-  // No guild means the matched handler must fail before reaching any HTTP call.
-  for id in [SCHEDULE_CUSTOM_ID, ROLE_MENU_CUSTOM_ID] {
-    let interaction = tools_test_component(id, tools_test_message())
-    let (gate, capture) = @framework.ResponseGate::capture(interaction)
-    assert_true(framework.process_with(interaction, gate~))
-    assert_true(capture.try_get() is None)
+  // No guild means the matched handler must fail before reaching any REST
+  // call. The raw schedule handler fails before answering; the role menu is a
+  // DeferredMessage route, so it has acknowledged ephemerally first.
+  let schedule = tools_test_component(SCHEDULE_CUSTOM_ID, tools_test_message())
+  let (gate, capture) = @framework.ResponseGate::capture(schedule)
+  assert_true(framework.process_with(schedule, gate~))
+  assert_true(capture.try_get() is None)
+  let role_menu = tools_test_component(
+    ROLE_MENU_CUSTOM_ID,
+    tools_test_message(),
+  )
+  let (gate, capture) = @framework.ResponseGate::capture(role_menu)
+  assert_true(framework.process_with(role_menu, gate~))
+  guard capture.try_get() is Some(captured) else {
+    fail("expected the role menu to defer before the guild check")
   }
+  json_inspect(captured.response.to_json(), content={
+    "type": 5,
+    "data": { "flags": 64 },
+  })
   assert_eq(errors, ["guild required", "guild required"])
   errors.clear()
-  for id in ["nekosama:schedule-other", "nekosama:rolemenu-other"] {
+  // The raw schedule prefix still matches a sibling id and the handler ignores
+  // it; the typed role-menu route does not match it at all.
+  for
+    case in [
+      ("nekosama:schedule-other", true),
+      ("nekosama:rolemenu-other", false),
+    ] {
+    let (id, routed) = case
     let interaction = tools_test_component(id, tools_test_message())
     let (gate, capture) = @framework.ResponseGate::capture(interaction)
-    assert_true(framework.process_with(interaction, gate~))
+    assert_eq(framework.process_with(interaction, gate~), routed)
     assert_true(capture.try_get() is None)
   }
   assert_eq(errors, [])

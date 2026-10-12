@@ -5,11 +5,11 @@ let jst_zone : @time.Zone = try! @time.fixed_zone("JST", 32400)
 ///|
 /// A wall-clock time in JST, as typed into `/event`.
 priv struct CivilTime {
-  year : Int
-  month : Int
-  day : Int
-  hour : Int
-  minute : Int
+  year : Int32
+  month : Int32
+  day : Int32
+  hour : Int32
+  minute : Int32
 }
 
 ///|
@@ -42,7 +42,7 @@ fn CivilTime::unix_seconds(self : CivilTime) -> Int64 {
 }
 
 ///|
-fn two_digits(value : Int) -> String {
+fn two_digits(value : Int32) -> String {
   if value < 10 {
     "0\{value}"
   } else {
@@ -58,14 +58,14 @@ fn CivilTime::iso8601(self : CivilTime) -> String {
 }
 
 ///|
-fn jst_year_at(unix_seconds : Int64) -> Int {
+fn jst_year_at(unix_seconds : Int64) -> Int32 {
   (try! @time.unix(unix_seconds, zone=jst_zone)).year()
 }
 
 ///|
 /// Reads up to `max` leading ASCII digits. `None` when there are none, or when
 /// more than `max` digits follow.
-fn take_number(text : StringView, max~ : Int) -> (Int, StringView)? {
+fn take_number(text : StringView, max~ : Int32) -> (Int32, StringView)? {
   let mut value = 0
   let mut count = 0
   let mut rest = text
@@ -82,7 +82,7 @@ fn take_number(text : StringView, max~ : Int) -> (Int, StringView)? {
 }
 
 ///|
-fn skip_spaces(text : StringView) -> (Int, StringView) {
+fn skip_spaces(text : StringView) -> (Int32, StringView) {
   let mut count = 0
   let mut rest = text
   while rest is [' ' | '\t' | '　', .. tail] {

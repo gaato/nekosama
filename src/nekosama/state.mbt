@@ -1,13 +1,13 @@
 ///|
 pub struct LimitedSizeMap[K, V] {
-  capacity : Int
+  capacity : Int32
   values : Map[K, V]
   order : Array[K]
 }
 
 ///|
 pub fn[K : Eq + Hash, V] LimitedSizeMap::LimitedSizeMap(
-  capacity : Int,
+  capacity : Int32,
 ) -> LimitedSizeMap[K, V] {
   guard capacity > 0 else { panic() }
   { capacity, values: Map([]), order: [], }
@@ -51,7 +51,7 @@ pub fn[K : Eq + Hash, V] LimitedSizeMap::remove(
 }
 
 ///|
-pub fn[K, V] LimitedSizeMap::length(self : LimitedSizeMap[K, V]) -> Int {
+pub fn[K, V] LimitedSizeMap::length(self : LimitedSizeMap[K, V]) -> Int32 {
   self.order.length()
 }
 

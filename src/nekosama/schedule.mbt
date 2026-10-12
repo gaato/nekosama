@@ -132,7 +132,7 @@ fn rebuild_schedule_embed(
   user_id : @model.UserId,
   values : Array[String],
 ) -> @model.Embed {
-  let selected : Array[Int] = []
+  let selected : Array[Int32] = []
   for value in values {
     let index = @string.parse_int(value) catch { _ => continue }
     selected.push(index)

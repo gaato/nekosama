@@ -24,7 +24,7 @@ fn tools_test_member() -> @model.GuildMember raise {
 fn tools_test_role(
   id : String,
   name : String,
-  position : Int,
+  position : Int32,
 ) -> @model.Role raise {
   @json.from_json({
     "id": id,

@@ -7,7 +7,7 @@ fn translation_model() -> String {
 }
 
 ///|
-const TRANSLATION_COLOR : Int = 0xBF65E8
+const TRANSLATION_COLOR : Int32 = 0xBF65E8
 
 ///|
 const EDIT_MODAL_ID : String = "edit-translation"
@@ -167,7 +167,7 @@ async fn Runtime::handle_message_delete(
 ///|
 /// Discord caps a modal text input (and its prefilled value) at 4000
 /// characters, below the 4096 an embed description can hold.
-const MODAL_TEXT_LIMIT : Int = 4000
+const MODAL_TEXT_LIMIT : Int32 = 4000
 
 ///|
 priv struct EditForm {

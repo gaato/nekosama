@@ -1,4 +1,4 @@
-FROM ghcr.io/gaato/moonbit:0.10.14-7d59c7ec9 AS build
+FROM ghcr.io/gaato/moonbit:0.10.15-943464bfa AS build
 
 # TLS and zlib headers for the native backend, and Node.js for the
 # gaato/discord prebuild script.

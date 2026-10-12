@@ -44,7 +44,7 @@ component ids and the `config.json` layout are unchanged.
 
 ## Prerequisites
 
-- MoonBit toolchain `0.10.14+7d59c7ec9` (`moon 0.1.20260920`)
+- MoonBit toolchain `0.10.15+943464bfa` (`moon 0.1.20261012`)
 - A C toolchain plus OpenSSL and zlib development headers
 - Node.js on `PATH` (the `gaato/discord` prebuild script runs on it, even
   though nekosama does not use voice)

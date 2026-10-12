@@ -1,6 +1,6 @@
 ///|
 test "@nekosama.LimitedSizeMap evicts the oldest entry" {
-  let values : @nekosama.LimitedSizeMap[String, Int] = @nekosama.LimitedSizeMap(
+  let values : @nekosama.LimitedSizeMap[String, Int32] = @nekosama.LimitedSizeMap(
     2,
   )
   values.set("first", 1)
@@ -14,7 +14,7 @@ test "@nekosama.LimitedSizeMap evicts the oldest entry" {
 
 ///|
 test "@nekosama.LimitedSizeMap preserves insertion order when overwritten" {
-  let values : @nekosama.LimitedSizeMap[String, Int] = @nekosama.LimitedSizeMap(
+  let values : @nekosama.LimitedSizeMap[String, Int32] = @nekosama.LimitedSizeMap(
     2,
   )
   values.set("first", 1)

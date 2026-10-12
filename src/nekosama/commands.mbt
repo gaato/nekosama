@@ -1,8 +1,8 @@
 ///|
-const MESSAGE_LIMIT : Int = 1900
+const MESSAGE_LIMIT : Int32 = 1900
 
 ///|
-const EMBED_DESCRIPTION_LIMIT : Int = 3900
+const EMBED_DESCRIPTION_LIMIT : Int32 = 3900
 
 ///|
 priv struct RoleMembersArgs {
@@ -72,7 +72,7 @@ fn member_line(guild_member : @model.GuildMember) -> String {
 }
 
 ///|
-fn summarize_lines(lines : Array[String], limit : Int) -> String {
+fn summarize_lines(lines : Array[String], limit : Int32) -> String {
   if lines.is_empty() {
     return ""
   }

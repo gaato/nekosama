@@ -16,13 +16,13 @@ const UNTAGGED : String = "（タグなし）"
 const LABEL_TAG_PREFIX : String = "【"
 
 ///|
-const INDEX_MESSAGE_LIMIT : Int = 2000
+const INDEX_MESSAGE_LIMIT : Int32 = 2000
 
 ///|
-const ARCHIVED_FETCH_LIMIT : Int = 50
+const ARCHIVED_FETCH_LIMIT : Int32 = 50
 
 ///|
-const ARCHIVED_SHOWN : Int = 20
+const ARCHIVED_SHOWN : Int32 = 20
 
 ///|
 /// Thread changes arrive in bursts, so the index is rebuilt once they settle.
@@ -32,7 +32,7 @@ const REFRESH_DELAY_MS : UInt64 = 5000
 const REFRESH_ALL_INTERVAL_MS : UInt64 = 1800000
 
 ///|
-const FORUM_SERVICE_TICK_MS : Int = 1000
+const FORUM_SERVICE_TICK_MS : Int32 = 1000
 
 ///|
 /// The tag given to a new post that has none: the first whose name mentions

@@ -22,7 +22,7 @@ pub struct Client {
 /// `FakeTransport`.
 pub fn Client::Client(
   api_key : String,
-  base_url? : String = "https://api.openai.com/v1",
+  base_url~ : String = "https://api.openai.com/v1",
   transport? : &@http.Transport,
 ) -> Client {
   let transport : &@http.Transport = match transport {

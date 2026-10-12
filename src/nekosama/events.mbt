@@ -2,7 +2,7 @@
 const EVENT_NOTIFY_KEY : String = "event_notify"
 
 ///|
-const EVENT_TICK_MS : Int = 60000
+const EVENT_TICK_MS : Int32 = 60000
 
 ///|
 const REMINDER_LEAD_SECONDS : Int64 = 300

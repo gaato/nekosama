@@ -21,17 +21,21 @@ pub fn[M] id_to_json(@model.Id[M]) -> Json
 
 pub fn is_blank(String) -> Bool
 
-pub fn register_commands(@app.App, Runtime) -> Unit
+pub fn register_commands(@app.AppBuilder, Runtime) -> Unit
 
-pub fn register_events(@app.App, @bot.Bot, Runtime) -> Unit
+pub fn register_event_commands(@app.AppBuilder, Runtime) -> Unit
 
-pub fn register_forums(@app.App, @bot.Bot, Runtime) -> Unit
+pub fn register_event_notifier(@bot.BotBuilder, Runtime) -> Unit
 
-pub fn register_member_tools(@app.App, Runtime) -> Unit
+pub fn register_forum_commands(@app.AppBuilder, Runtime) -> Unit
 
-pub fn register_translation_commands(@app.App, Runtime) -> Unit
+pub fn register_forum_events(@bot.BotBuilder, Runtime) -> Unit
 
-pub fn register_translation_events(@bot.Bot, Runtime) -> Unit
+pub fn register_member_tools(@app.AppBuilder, Runtime) -> Unit
+
+pub fn register_translation_commands(@app.AppBuilder, Runtime) -> Unit
+
+pub fn register_translation_events(@bot.BotBuilder, Runtime) -> Unit
 
 pub fn translation_probe(String) -> String
 
@@ -72,7 +76,7 @@ pub struct Runtime {
   config : ConfigStore
 }
 pub fn Runtime::Runtime(String, ConfigStore) -> Self
-pub fn Runtime::attach_cache(Self, @bot.Bot) -> Unit
+pub fn Runtime::attach_cache(Self, @bot.BotBuilder) -> Unit
 pub fn Runtime::set_bot_user_id(Self, @model.Id[@model.UserMarker]) -> Unit
 
 pub(all) struct TranslationRecord {

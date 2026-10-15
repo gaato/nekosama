@@ -1,11 +1,9 @@
 FROM ghcr.io/gaato/moonbit:0.10.15-943464bfa AS build
 
-# TLS and zlib headers for the native backend, and Node.js for the
-# gaato/discord prebuild script.
+# TLS and zlib headers for the native backend.
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         libssl-dev \
-        nodejs \
         zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 

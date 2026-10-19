@@ -80,6 +80,7 @@ async fn main {
       token~,
       intents=bot_intents(),
       sync=command_scope(),
+      compression=ZstdStream,
     )
     runtime.attach_cache(bot)
     @nekosama.register_translation_events(bot, runtime)

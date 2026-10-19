@@ -137,9 +137,8 @@ pub async fn ConfigStore::remove(
 async fn ConfigStore::save(self : ConfigStore) -> Unit {
   self.save_lock.acquire()
   defer self.save_lock.release()
-  // mkdir fails on an existing directory even with recursive=true.
-  if parent_directory(self.path) is Some(dir) && !@fs.exists(dir) {
-    @fs.mkdir(dir, recursive=true)
+  if parent_directory(self.path) is Some(dir) {
+    @fs.mkdir(dir, recursive=true, allow_exist=true)
   }
   let tmp = "\{self.path}.tmp"
   @fs.write_file(tmp, self.to_json_value().stringify(indent=2))

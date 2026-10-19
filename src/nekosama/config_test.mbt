@@ -2,9 +2,7 @@
 async test "settings written by the Python bot survive a round trip" {
   let dir = "_build/test-data/config-round-trip"
   let path = "\{dir}/config.json"
-  if !@fs.exists(dir) {
-    @fs.mkdir(dir, recursive=true)
-  }
+  @fs.mkdir(dir, recursive=true, allow_exist=true)
   @fs.write_file(
     path,
     (

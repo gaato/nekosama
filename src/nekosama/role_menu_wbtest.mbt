@@ -108,7 +108,9 @@ test "Forbidden maps to the exact Python reply and other errors propagate" {
     is None,
   )
   assert_true(
-    role_menu_error_reply(@http.DiscordHttpError::Transport(message="offline"))
+    role_menu_error_reply(
+      @http.DiscordHttpError::Transport(phase=Unknown, message="offline"),
+    )
     is None,
   )
 }
@@ -259,12 +261,18 @@ async test "Forbidden during either role operation stops updates with the Python
     ignore(
       apply_role_menu_changes(
         changes,
-        add_role=_ => raise @http.DiscordHttpError::Transport(message="offline"),
+        add_role=_ => {
+          raise @http.DiscordHttpError::Transport(
+            phase=Unknown,
+            message="offline",
+          )
+        },
         remove_role=_ => fail("must stop after the failure"),
       ),
     )
   catch {
-    @http.DiscordHttpError::Transport(message~) => assert_eq(message, "offline")
+    @http.DiscordHttpError::Transport(message~, ..) =>
+      assert_eq(message, "offline")
     error => fail("unexpected error: \{Repr(error)}")
   } noraise {
     _ => fail("expected transport failure to propagate")

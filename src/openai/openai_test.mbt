@@ -36,7 +36,8 @@ async test "chat completion sends the model, messages and reasoning effort, and 
   transport.assert_complete()
   let sent = transport.sent()[0]
   assert_eq(sent.headers.get("authorization"), Some("Bearer sk-test"))
-  guard @json.parse(@utf8.decode(sent.body)) is Object(fields) else {
+  guard sent.body.as_bytes() is Some(body) &&
+    @json.parse(@utf8.decode(body)) is Object(fields) else {
     fail("expected a JSON object body")
   }
   assert_eq(fields.get("model"), Some(Json::string("gpt-5.6-luna")))

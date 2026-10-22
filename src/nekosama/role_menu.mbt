@@ -290,7 +290,7 @@ fn register_role_menu_handler(
       let changes = role_menu_changes(
         role_menu_option_ids(ctx.message().components.unwrap_or([])),
         runtime.cache.roles(guild.guild_id).map(role => role.id),
-        guild.member.roles,
+        guild.guild_member.roles,
         role_menu_ids(ctx.values()),
       )
       let member_ref = ctx

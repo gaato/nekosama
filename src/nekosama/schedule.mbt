@@ -194,11 +194,11 @@ fn schedule_command(_runtime : Runtime) -> @discord.Command[ScheduleArgs] {
             args.title,
             options,
             args.note,
-            member_tools_display_name(user, Some(guild.member)),
+            member_tools_display_name(user, Some(guild.guild_member)),
             member_tools_avatar_url(
               user,
               Some(guild.guild_id),
-              Some(guild.member),
+              Some(guild.guild_member),
             ),
           ),
         ],

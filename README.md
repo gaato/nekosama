@@ -44,7 +44,7 @@ component ids and the `config.json` layout are unchanged.
 
 ## Prerequisites
 
-- MoonBit toolchain `0.10.15+943464bfa` (`moon 0.1.20261012`)
+- MoonBit toolchain `0.10.16+b1a0e846e` (`moon 0.1.20261016`)
 - A C toolchain plus OpenSSL and zlib development headers
 - A Discord application with the Server Members Intent and Message Content
   Intent enabled

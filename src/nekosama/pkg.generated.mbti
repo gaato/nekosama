@@ -58,13 +58,13 @@ pub async fn ConfigStore::remove(Self, @model.Id[@model.GuildMarker], String) ->
 pub async fn ConfigStore::set(Self, @model.Id[@model.GuildMarker], String, Json) -> Unit
 
 pub struct LimitedSizeMap[K, V] {
-  capacity : Int
+  capacity : Int32
   values : Map[K, V]
   order : Array[K]
 }
-pub fn[K : Eq + Hash, V] LimitedSizeMap::LimitedSizeMap(Int) -> Self[K, V]
+pub fn[K : Eq + Hash, V] LimitedSizeMap::LimitedSizeMap(Int32) -> Self[K, V]
 pub fn[K : Eq + Hash, V] LimitedSizeMap::get(Self[K, V], K) -> V?
-pub fn[K, V] LimitedSizeMap::length(Self[K, V]) -> Int
+pub fn[K, V] LimitedSizeMap::length(Self[K, V]) -> Int32
 pub fn[K : Eq + Hash, V] LimitedSizeMap::remove(Self[K, V], K) -> V?
 pub fn[K : Eq + Hash, V] LimitedSizeMap::set(Self[K, V], K, V) -> Unit
 

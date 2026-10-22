@@ -1,4 +1,4 @@
-FROM ghcr.io/gaato/moonbit:0.10.15-943464bfa AS build
+FROM ghcr.io/gaato/moonbit:0.10.16-b1a0e846e AS build
 
 # TLS and zlib headers for the native backend.
 RUN apt-get update \

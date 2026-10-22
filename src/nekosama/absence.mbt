@@ -90,8 +90,12 @@ fn absence_command(runtime : Runtime) -> @discord.Command[AbsenceArgs] {
       let user = ctx.user()
       let embed = absence_embed(
         args,
-        member_tools_display_name(user, Some(guild.member)),
-        member_tools_avatar_url(user, Some(guild.guild_id), Some(guild.member)),
+        member_tools_display_name(user, Some(guild.guild_member)),
+        member_tools_avatar_url(
+          user,
+          Some(guild.guild_id),
+          Some(guild.guild_member),
+        ),
       )
       ctx
       .app()

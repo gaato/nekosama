@@ -34,13 +34,6 @@ jobs:
       - name: Update MoonBit package registry
         run: moon update
 
-      - name: Check native target
-        run: moon check --target native
-
-      - name: Test native target
-        env:
-          MOON_CC: /usr/bin/gcc
-        run: moon test --target native
-
-      - name: Check formatting
-        run: moon fmt --check
+      # The canary (canary.yml) runs the same script on newer toolchains.
+      - name: Check, test, and check formatting
+        run: scripts/gates.sh

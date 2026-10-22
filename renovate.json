@@ -7,5 +7,14 @@
   ],
   "schedule": [
     "before 9am on monday"
+  ],
+  "packageRules": [
+    {
+      "description": "gaato/.github is our own reusable workflow, referenced at main so a change reaches every repository at once.",
+      "matchPackageNames": [
+        "gaato/.github"
+      ],
+      "enabled": false
+    }
   ]
 }

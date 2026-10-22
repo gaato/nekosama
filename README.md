@@ -101,7 +101,5 @@ docker run --rm \
 ## Checks
 
 ```fish
-moon check --target native
-env MOON_CC=/usr/bin/gcc moon test --target native
-moon fmt --check
+scripts/gates.sh
 ```

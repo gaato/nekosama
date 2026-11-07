@@ -4,9 +4,10 @@
 pub using @llm {type ChatMessage}
 
 ///|
+#derive(Debug)
 pub suberror OpenAIError {
   InvalidResponse(String)
-} derive(Debug)
+}
 
 ///|
 /// A thin wrapper over `gaato/openai` with the two things this bot needs:
@@ -42,6 +43,7 @@ pub fn Client::Client(
 ///|
 /// How much a reasoning model thinks before answering. Omitting it leaves the
 /// model's default (`medium` for the GPT-5.6 family).
+#derive(Debug, Eq)
 pub(all) enum ReasoningEffort {
   Off
   Low
@@ -49,7 +51,7 @@ pub(all) enum ReasoningEffort {
   High
   XHigh
   Max
-} derive(Debug, Eq)
+}
 
 ///|
 pub fn ReasoningEffort::wire_name(self : ReasoningEffort) -> String {

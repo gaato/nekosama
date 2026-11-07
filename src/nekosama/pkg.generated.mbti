@@ -9,15 +9,16 @@ import {
   "gaato/nekosama/openai",
   "moonbitlang/async",
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
   "moonbitlang/core/ref",
 }
 
 // Values
 pub fn config_path() -> String
 
-pub fn[M] id_from_json(Json) -> @model.Id[M]?
+pub fn[M] id_from_json(@json.Json) -> @model.Id[M]?
 
-pub fn[M] id_to_json(@model.Id[M]) -> Json
+pub fn[M] id_to_json(@model.Id[M]) -> @json.Json
 
 pub fn is_blank(String) -> Bool
 
@@ -44,18 +45,18 @@ pub fn translation_probe(String) -> String
 // Types and methods
 pub struct ConfigStore {
   path : String
-  data : Map[String, Map[String, Json]]
+  data : Map[String, Map[String, @json.Json]]
   save_lock : @async.Mutex
 }
 pub fn ConfigStore::ConfigStore(String) -> Self
-pub fn ConfigStore::get(Self, @model.Id[@model.GuildMarker], String) -> Json?
+pub fn ConfigStore::get(Self, @model.Id[@model.GuildMarker], String) -> @json.Json?
 pub fn ConfigStore::get_bool(Self, @model.Id[@model.GuildMarker], String, default~ : Bool) -> Bool
 pub fn[M] ConfigStore::get_id(Self, @model.Id[@model.GuildMarker], String) -> @model.Id[M]?
-pub fn ConfigStore::guild(Self, @model.Id[@model.GuildMarker]) -> Map[String, Json]
+pub fn ConfigStore::guild(Self, @model.Id[@model.GuildMarker]) -> Map[String, @json.Json]
 pub fn ConfigStore::guilds_with(Self, String) -> Array[@model.Id[@model.GuildMarker]]
 pub async fn ConfigStore::load(String) -> Self
 pub async fn ConfigStore::remove(Self, @model.Id[@model.GuildMarker], String) -> Unit
-pub async fn ConfigStore::set(Self, @model.Id[@model.GuildMarker], String, Json) -> Unit
+pub async fn ConfigStore::set(Self, @model.Id[@model.GuildMarker], String, @json.Json) -> Unit
 
 pub struct LimitedSizeMap[K, V] {
   capacity : Int32
@@ -79,10 +80,11 @@ pub fn Runtime::Runtime(String, ConfigStore) -> Self
 pub fn Runtime::attach_cache(Self, @bot.BotBuilder) -> Unit
 pub fn Runtime::set_bot_user_id(Self, @model.Id[@model.UserMarker]) -> Unit
 
+#derive(@debug.Debug)
 pub(all) struct TranslationRecord {
   original_content : String
   reply_message_id : @model.Id[@model.MessageMarker]
-} derive(@debug.Debug)
+}
 
 // Type aliases
 

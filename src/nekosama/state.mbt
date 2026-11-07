@@ -56,7 +56,8 @@ pub fn[K, V] LimitedSizeMap::length(self : LimitedSizeMap[K, V]) -> Int32 {
 }
 
 ///|
+#derive(Debug)
 pub(all) struct TranslationRecord {
   original_content : String
   reply_message_id : @model.MessageId
-} derive(Debug)
+}

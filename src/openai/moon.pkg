@@ -1,15 +1,21 @@
 import {
   "gaato/http",
-  "gaato/http-async" @transport,
+  "gaato/http-async/backend",
+  "gaato/http-async/runtime",
   "gaato/openai" @llm,
 }
 
 import {
   "gaato/http",
-  "gaato/http/mock",
-  "moonbitlang/async",
+  "gaato/mttp/client",
+  "gaato/mttp/testing",
+  "moonbitlang/core/async",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
 } for "test"
 
 supported_targets = "native"
+
+options(
+  "allow-experimental-packages": [ "moonbitlang/core/async" ],
+)

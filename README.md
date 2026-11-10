@@ -44,7 +44,7 @@ component ids and the `config.json` layout are unchanged.
 
 ## Prerequisites
 
-- MoonBit toolchain `0.10.16+b1a0e846e` (`moon 0.1.20261016`)
+- MoonBit toolchain `0.10.20+65efd5b93` (also pinned by CI and the container)
 - A C toolchain plus OpenSSL and zlib development headers
 - A Discord application with the Server Members Intent and Message Content
   Intent enabled
@@ -58,6 +58,14 @@ MoonBit package registry, then build the native release binary:
 moon update
 moon build --release --target native
 ```
+
+The bot uses `gaato/discord` 0.15 and `gaato/openai` 0.7 with `gaato/http`
+0.6, `gaato/http-async` 0.6 and `gaato/mttp` 0.1. Its runtime is
+`moonbitlang/core/async`; the packages opt into the exact experimental
+runtime imports in their `moon.pkg` files. OpenAI requests keep the
+30-second attempt budget and the SDK's retry defaults. HTTP and decoding
+failures reach the bot's error handling with their response status and
+diagnostic body; transport errors propagate directly.
 
 Set the runtime configuration and start the bot:
 

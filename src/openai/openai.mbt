@@ -7,36 +7,53 @@ pub using @llm {type ChatMessage}
 #derive(Debug)
 pub suberror OpenAIError {
   InvalidResponse(String)
+  Api(@llm.OpenAIFailure)
 }
 
 ///|
 /// A thin wrapper over `gaato/openai` with the two things this bot needs:
 /// one chat completion call that returns the text, and a reasoning-effort
-/// switch. Transport failures, HTTP errors and rate limits surface as
-/// `@runtime.SdkError`, which carries the status code.
+/// switch. HTTP and decoding failures retain the SDK failure (including the
+/// response status and body) in `OpenAIError::Api`; transport errors propagate.
 pub struct Client {
   priv api : @llm.OpenAI
+  priv owned_backend : &@http.Backend?
 }
 
 ///|
-/// `transport` defaults to a pooled `AsyncTransport`; tests pass a
-/// `FakeTransport`.
+/// `backend` defaults to an owned, pooled `AsyncBackend`, with the previous
+/// 30-second exchange budget. Injected backends remain caller-owned.
 pub fn Client::Client(
   api_key : String,
   base_url~ : String = "https://api.openai.com/v1",
-  transport? : &@http.Transport,
+  backend? : &@http.Backend,
 ) -> Client {
-  let transport : &@http.Transport = match transport {
-    Some(transport) => transport
-    None => @transport.AsyncTransport::new()
+  let (backend, owned_backend) : (&@http.Backend, &@http.Backend?) = match
+    backend {
+    Some(backend) => (backend, None)
+    None => {
+      let backend : &@http.Backend = @backend.AsyncBackend::new()
+      (backend, Some(backend))
+    }
   }
   {
     api: @llm.OpenAI::new(
       api_key~,
-      transport,
-      @transport.AsyncClock::new(),
+      backend,
+      @runtime.AsyncClock::new(),
       base_url~,
+      timer=@runtime.ClockTimer::new(),
+      timeout_ms=30000,
     ),
+    owned_backend,
+  }
+}
+
+///|
+/// Release the connection pool on shutdown; supplied backends remain shared.
+pub fn Client::close(self : Client) -> Unit {
+  if self.owned_backend is Some(backend) {
+    backend.close()
   }
 }
 
@@ -90,6 +107,10 @@ pub async fn Client::chat_completion(
       reasoning_effort?=reasoning_effort.map(ReasoningEffort::wire_name),
     ),
   )
+  let completion = match completion {
+    Ok(completion) => completion
+    Err(error) => raise Api(error)
+  }
   guard !completion.text.is_empty() else {
     raise InvalidResponse("response has no text completion")
   }

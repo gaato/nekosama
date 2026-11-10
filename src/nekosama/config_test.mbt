@@ -3,7 +3,7 @@ async test "settings written by the Python bot survive a round trip" {
   let dir = "_build/test-data/config-round-trip"
   let path = "\{dir}/config.json"
   @fs.mkdir(dir, recursive=true, allow_exist=true)
-  @fs.write_file(
+  @fs.write_text(
     path,
     (
       #|{
@@ -37,7 +37,7 @@ async test "settings written by the Python bot survive a round trip" {
   reloaded.remove(guild_id, "member_role_id")
   reloaded.remove(guild_id, "auto_translate")
   reloaded.remove(guild_id, "absence_channel_id")
-  inspect(@fs.read_file(path).text(), content="{}")
+  inspect(@fs.read_text(path), content="{}")
 }
 
 ///|

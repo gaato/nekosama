@@ -30,7 +30,7 @@ pub fn config_path() -> String {
 pub async fn ConfigStore::load(path : String) -> ConfigStore {
   let store = ConfigStore(path)
   if @fs.exists(path) {
-    store.replace_with(@json.parse(@fs.read_file(path).text()))
+    store.replace_with(@json.parse(@fs.read_text(path)))
   } else {
     // Write now so a data directory the bot cannot write to stops it at
     // startup, not at the first setting change.
@@ -141,7 +141,7 @@ async fn ConfigStore::save(self : ConfigStore) -> Unit {
     @fs.mkdir(dir, recursive=true, allow_exist=true)
   }
   let tmp = "\{self.path}.tmp"
-  @fs.write_file(tmp, self.to_json_value().stringify(indent=2))
+  @fs.write_text(tmp, self.to_json_value().stringify(indent=2))
   @fs.rename(tmp, self.path, replace=true)
 }
 

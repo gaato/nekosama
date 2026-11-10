@@ -48,6 +48,12 @@ pub fn Runtime::attach_cache(self : Runtime, bot : @discord.BotBuilder) -> Unit 
 }
 
 ///|
+/// Close the owned OpenAI connection pool after bot services have stopped.
+pub fn Runtime::close(self : Runtime) -> Unit {
+  self.openai.close()
+}
+
+///|
 pub fn Runtime::set_bot_user_id(
   self : Runtime,
   bot_user_id : @model.UserId,

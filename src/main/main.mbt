@@ -69,6 +69,7 @@ async fn main {
       @env.get_env_var("OPENAI_API_KEY").unwrap_or(""),
       config,
     )
+    defer runtime.close()
     let app = @discord.AppBuilder()
     app.command(ping_command())
     @nekosama.register_commands(app, runtime)

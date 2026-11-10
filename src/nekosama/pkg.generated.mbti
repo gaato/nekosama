@@ -7,7 +7,7 @@ import {
   "gaato/discord/cache",
   "gaato/discord/model",
   "gaato/nekosama/openai",
-  "moonbitlang/async",
+  "moonbitlang/core/async",
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
   "moonbitlang/core/ref",
@@ -78,6 +78,7 @@ pub struct Runtime {
 }
 pub fn Runtime::Runtime(String, ConfigStore) -> Self
 pub fn Runtime::attach_cache(Self, @bot.BotBuilder) -> Unit
+pub fn Runtime::close(Self) -> Unit
 pub fn Runtime::set_bot_user_id(Self, @model.Id[@model.UserMarker]) -> Unit
 
 #derive(@debug.Debug)

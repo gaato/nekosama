@@ -1,12 +1,12 @@
 import {
-  "gaato/http",
-  "gaato/http-async/backend",
-  "gaato/http-async/runtime",
+  "gaato/mttp" @http,
+  "gaato/mttp_async/backend",
+  "gaato/mttp_async/runtime",
   "gaato/openai" @llm,
 }
 
 import {
-  "gaato/http",
+  "gaato/mttp" @http,
   "gaato/mttp/client",
   "gaato/mttp/testing",
   "moonbitlang/core/async",

@@ -59,8 +59,8 @@ moon update
 moon build --release --target native
 ```
 
-The bot uses `gaato/discord` 0.15 and `gaato/openai` 0.7 with `gaato/http`
-0.6, `gaato/http-async` 0.6 and `gaato/mttp` 0.1. Its runtime is
+The bot uses `gaato/discord` and `gaato/openai` with `gaato/mttp` 0.2 and
+`gaato/mttp_async` 0.1. Its runtime is
 `moonbitlang/core/async`; the packages opt into the exact experimental
 runtime imports in their `moon.pkg` files. OpenAI requests keep the
 30-second attempt budget and the SDK's retry defaults. HTTP and decoding

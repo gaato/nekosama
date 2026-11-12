@@ -3,7 +3,7 @@
 [![CI](https://github.com/gaato/nekosama/actions/workflows/ci.yml/badge.svg)](https://github.com/gaato/nekosama/actions/workflows/ci.yml)
 [![Container Image](https://github.com/gaato/nekosama/actions/workflows/container-image.yml/badge.svg)](https://github.com/gaato/nekosama/actions/workflows/container-image.yml)
 [![ghcr.io](https://img.shields.io/badge/ghcr.io-gaato%2Fnekosama-blue?logo=docker&logoColor=white)](https://github.com/gaato/nekosama/pkgs/container/nekosama)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/gaato/nekosama)
+[![Ask DeepWiki](https://img.shields.io/badge/Ask-DeepWiki-blue)](https://deepwiki.com/gaato/nekosama)
 [![License](https://img.shields.io/github/license/gaato/nekosama)](LICENSE)
 
 nekosama is a Discord bot written in MoonBit on top of

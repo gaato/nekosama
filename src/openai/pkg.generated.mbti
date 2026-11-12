@@ -2,7 +2,7 @@
 package "gaato/nekosama/openai"
 
 import {
-  "gaato/mttp",
+  "gaato/mttp_core",
   "moonbitlang/core/debug",
 }
 
@@ -20,7 +20,7 @@ pub suberror OpenAIError {
 pub struct Client {
   // private fields
 }
-pub fn Client::Client(String, base_url? : String, backend? : &@mttp.Backend) -> Self
+pub fn Client::Client(String, base_url? : String, backend? : &@mttp_core.Backend) -> Self
 pub async fn Client::chat_completion(Self, String, Array[@gaato/openai.ChatMessage], reasoning_effort? : ReasoningEffort) -> String
 pub fn Client::close(Self) -> Unit
 

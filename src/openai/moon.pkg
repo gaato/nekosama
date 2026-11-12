@@ -1,14 +1,14 @@
 import {
-  "gaato/mttp" @http,
-  "gaato/mttp_async/backend",
-  "gaato/mttp_async/runtime",
+  "gaato/mttp_core" @http,
+  "gaato/mttp/backend",
+  "gaato/mttp/runtime",
   "gaato/openai" @llm,
 }
 
 import {
-  "gaato/mttp" @http,
-  "gaato/mttp/client",
-  "gaato/mttp/testing",
+  "gaato/mttp_core" @http,
+  "gaato/mttp_core/client",
+  "gaato/mttp_core/testing",
   "moonbitlang/core/async",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",

@@ -138,7 +138,11 @@ async fn ConfigStore::save(self : ConfigStore) -> Unit {
   self.save_lock.acquire()
   defer self.save_lock.release()
   if parent_directory(self.path) is Some(dir) {
-    @fs.mkdir(dir, recursive=true, allow_exist=true)
+    // `exists` rather than the mkdir flag, which core renamed from
+    // `allow_exist` to `allow_existing`; the lock above rules out a race.
+    if !@fs.exists(dir) {
+      @fs.mkdir(dir, recursive=true)
+    }
   }
   let tmp = "\{self.path}.tmp"
   @fs.write_text(tmp, self.to_json_value().stringify(indent=2))
